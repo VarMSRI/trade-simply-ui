@@ -156,13 +156,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
     
     try {
-      const response = await fetch(`${API_BASE_URL}/api/users/profile`, {
+      const response = await fetch(`${API_BASE_URL}/api/users/profile?name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}`, {
         method: 'PUT',
         headers: {
           ...DEFAULT_HEADERS,
           'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ name, email }),
+        }
       });
       
       if (!response.ok) {
