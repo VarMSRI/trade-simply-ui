@@ -8,8 +8,7 @@ import { User } from '@/types/auth';
 const API_BASE_URL = 'https://app.intuitifi.com';
 const DEFAULT_HEADERS = {
   'Content-Type': 'application/json',
-  'Origin': 'http://localhost:5173',
-  'Referer': 'http://localhost:5173/'
+  'Accept': 'application/json'
 };
 
 interface AuthContextType {
