@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from '@/providers/AuthProvider';
+import { toast } from "sonner";
 
 const Login = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -27,6 +28,7 @@ const Login = () => {
     setErrorMessage('');
     
     try {
+      // Make sure we're passing the phone number parameter correctly
       const success = await login(phoneNumber);
       if (success) {
         navigate('/verify-otp', { state: { phoneNumber } });
@@ -34,6 +36,7 @@ const Login = () => {
     } catch (error) {
       console.error('Login error:', error);
       setErrorMessage('Failed to send OTP. Please try again.');
+      toast.error('Failed to send OTP');
     } finally {
       setIsSubmitting(false);
     }

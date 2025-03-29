@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from "sonner";
@@ -62,11 +61,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const login = async (phoneNumber: string): Promise<boolean> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/request-otp`, {
+      // Modify the request to use query parameters instead of body for GET requests
+      // or ensure proper body formatting for POST requests
+      const url = `${API_BASE_URL}/api/auth/request-otp?phoneNumber=${encodeURIComponent(phoneNumber)}`;
+      
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           ...DEFAULT_HEADERS
         },
+        // Still include in body for POST requests
         body: JSON.stringify({ phoneNumber }),
       });
       
