@@ -28,9 +28,9 @@ const Login = () => {
     setErrorMessage('');
     
     try {
-      // Make sure we're passing the phone number parameter correctly
       const success = await login(phoneNumber);
       if (success) {
+        toast.success("OTP sent successfully");
         navigate('/verify-otp', { state: { phoneNumber } });
       }
     } catch (error) {
