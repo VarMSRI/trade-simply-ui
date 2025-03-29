@@ -16,7 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { AlertTriangle, Mail, Indian, User, AtSign, Wallet } from "lucide-react";
+import { AlertTriangle, Mail, Phone, User, AtSign, Wallet } from "lucide-react";
 import { formatDistanceToNow } from 'date-fns';
 
 const Profile = () => {
@@ -96,7 +96,7 @@ const Profile = () => {
             </div>
             
             <div className="flex items-center gap-2">
-              <Indian className="h-4 w-4 text-muted-foreground" />
+              <Phone className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm font-medium">Phone:</span>
             </div>
             <div className="pl-6 text-sm">
