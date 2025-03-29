@@ -1,16 +1,10 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from "sonner";
 import { User } from '@/types/auth';
-
-// Base URL and headers for API calls
-const API_BASE_URL = 'https://app.intuitifi.com';
-const DEFAULT_HEADERS = {
-  'Content-Type': 'application/json',
-  'Origin': 'http://localhost:5173',
-  'Referer': 'http://localhost:5173/'
-};
+import { useAuthState } from '@/hooks/useAuthState';
+import { requestOtp, verifyOtp } from '@/services/authService';
+import { fetchUserProfile, updateUserProfile, deleteUserProfile } from '@/services/userService';
 
 interface AuthContextType {
   user: User | null;
@@ -28,9 +22,12 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const { 
+    user, setUser, 
+    token, setToken, 
+    isLoading, setIsLoading, 
+    isAuthenticated 
+  } = useAuthState();
   const navigate = useNavigate();
 
   // Check if token exists in localStorage on mount
@@ -45,7 +42,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setUser(userProfile);
           
           // Check if profile is incomplete
-          if (!userProfile.name || userProfile.email === 'default@example.com') {
+          if (userProfile && (!userProfile.name || userProfile.email === 'default@example.com')) {
             navigate('/complete-profile');
           }
         } catch (error) {
@@ -62,154 +59,57 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const login = async (phoneNumber: string): Promise<boolean> => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/request-otp`, {
-        method: 'POST',
-        headers: {
-          ...DEFAULT_HEADERS
-        },
-        body: JSON.stringify({ phoneNumber }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        toast.error(errorData.message || 'Failed to send OTP');
-        return false;
-      }
-      
-      toast.success('OTP sent successfully');
-      return true;
-    } catch (error) {
-      console.error('Login error:', error);
-      toast.error('Failed to send OTP');
-      return false;
-    }
+    return await requestOtp(phoneNumber);
   };
 
-  const verifyOtp = async (phoneNumber: string, otp: string): Promise<boolean> => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/verify-otp`, {
-        method: 'POST',
-        headers: {
-          ...DEFAULT_HEADERS
-        },
-        body: JSON.stringify({ phoneNumber, otp }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        toast.error(errorData.message || 'Invalid OTP');
-        return false;
-      }
-      
-      const data = await response.json();
-      setToken(data.token);
-      localStorage.setItem('token', data.token);
+  const handleVerifyOtp = async (phoneNumber: string, otp: string): Promise<boolean> => {
+    const result = await verifyOtp(phoneNumber, otp);
+    
+    if (result.success && result.token) {
+      setToken(result.token);
+      localStorage.setItem('token', result.token);
       
       // Fetch user profile after successful verification
-      const userProfile = await fetchUserProfile(data.token);
-      setUser(userProfile);
-      
-      return true;
-    } catch (error) {
-      console.error('OTP verification error:', error);
-      toast.error('Failed to verify OTP');
-      return false;
-    }
-  };
-
-  const fetchUserProfile = async (authToken?: string): Promise<User> => {
-    const tokenToUse = authToken || token;
-    if (!tokenToUse) {
-      throw new Error('No authentication token found');
+      try {
+        const userProfile = await fetchUserProfile(result.token);
+        setUser(userProfile);
+        return true;
+      } catch (error) {
+        console.error('Failed to fetch profile after OTP verification:', error);
+        return false;
+      }
     }
     
+    return false;
+  };
+
+  const handleFetchUserProfile = async (): Promise<User | null> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/users/profile`, {
-        method: 'GET',
-        headers: {
-          ...DEFAULT_HEADERS,
-          'Authorization': `Bearer ${tokenToUse}`,
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch user profile');
-      }
-      
-      const userProfile = await response.json();
+      const userProfile = await fetchUserProfile(token);
       setUser(userProfile);
       return userProfile;
     } catch (error) {
-      console.error('Profile fetch error:', error);
-      throw error;
+      console.error('Failed to fetch user profile:', error);
+      return null;
     }
   };
 
-  const updateUserProfile = async (name: string, email: string): Promise<User | null> => {
-    if (!token) {
-      toast.error('You must be logged in to update your profile');
-      return null;
-    }
-    
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/users/profile`, {
-        method: 'PUT',
-        headers: {
-          ...DEFAULT_HEADERS,
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ name, email }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        toast.error(errorData.message || 'Failed to update profile');
-        return null;
-      }
-      
-      const updatedProfile = await response.json();
+  const handleUpdateUserProfile = async (name: string, email: string): Promise<User | null> => {
+    const updatedProfile = await updateUserProfile(token, name, email);
+    if (updatedProfile) {
       setUser(updatedProfile);
-      toast.success('Profile updated successfully');
-      return updatedProfile;
-    } catch (error) {
-      console.error('Profile update error:', error);
-      toast.error('Failed to update profile');
-      return null;
     }
+    return updatedProfile;
   };
 
-  const deleteUserProfile = async (): Promise<boolean> => {
-    if (!token) {
-      toast.error('You must be logged in to delete your profile');
-      return false;
-    }
-    
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/users/profile`, {
-        method: 'DELETE',
-        headers: {
-          ...DEFAULT_HEADERS,
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        toast.error(errorData.message || 'Failed to delete profile');
-        return false;
-      }
-      
+  const handleDeleteUserProfile = async (): Promise<boolean> => {
+    const success = await deleteUserProfile(token);
+    if (success) {
       localStorage.removeItem('token');
       setToken(null);
       setUser(null);
-      toast.success('Profile deleted successfully');
-      return true;
-    } catch (error) {
-      console.error('Profile deletion error:', error);
-      toast.error('Failed to delete profile');
-      return false;
     }
+    return success;
   };
 
   const logout = () => {
@@ -224,12 +124,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       user,
       token,
       isLoading,
-      isAuthenticated: !!token,
+      isAuthenticated,
       login,
-      verifyOtp,
-      fetchUserProfile: () => fetchUserProfile(),
-      updateUserProfile,
-      deleteUserProfile,
+      verifyOtp: handleVerifyOtp,
+      fetchUserProfile: handleFetchUserProfile,
+      updateUserProfile: handleUpdateUserProfile,
+      deleteUserProfile: handleDeleteUserProfile,
       logout
     }}>
       {children}
