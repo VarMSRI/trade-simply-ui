@@ -4,6 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from "sonner";
 import { User } from '@/types/auth';
 
+// Base URL and headers for API calls
+const API_BASE_URL = 'https://app.intuitifi.com';
+const DEFAULT_HEADERS = {
+  'Content-Type': 'application/json',
+  'Origin': 'http://localhost:5173',
+  'Referer': 'http://localhost:5173/'
+};
+
 interface AuthContextType {
   user: User | null;
   token: string | null;
@@ -55,10 +63,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const login = async (phoneNumber: string): Promise<boolean> => {
     try {
-      const response = await fetch('https://app.intuitifi.com/api/auth/request-otp', {
+      const response = await fetch(`${API_BASE_URL}/api/auth/request-otp`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          ...DEFAULT_HEADERS
         },
         body: JSON.stringify({ phoneNumber }),
       });
@@ -80,10 +88,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const verifyOtp = async (phoneNumber: string, otp: string): Promise<boolean> => {
     try {
-      const response = await fetch('https://app.intuitifi.com/api/auth/verify-otp', {
+      const response = await fetch(`${API_BASE_URL}/api/auth/verify-otp`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          ...DEFAULT_HEADERS
         },
         body: JSON.stringify({ phoneNumber, otp }),
       });
@@ -117,11 +125,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
     
     try {
-      const response = await fetch('https://app.intuitifi.com/api/users/profile', {
+      const response = await fetch(`${API_BASE_URL}/api/users/profile`, {
         method: 'GET',
         headers: {
+          ...DEFAULT_HEADERS,
           'Authorization': `Bearer ${tokenToUse}`,
-          'Content-Type': 'application/json',
         },
       });
       
@@ -145,11 +153,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
     
     try {
-      const response = await fetch('https://app.intuitifi.com/api/users/profile', {
+      const response = await fetch(`${API_BASE_URL}/api/users/profile`, {
         method: 'PUT',
         headers: {
+          ...DEFAULT_HEADERS,
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ name, email }),
       });
@@ -178,9 +186,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
     
     try {
-      const response = await fetch('https://app.intuitifi.com/api/users/profile', {
+      const response = await fetch(`${API_BASE_URL}/api/users/profile`, {
         method: 'DELETE',
         headers: {
+          ...DEFAULT_HEADERS,
           'Authorization': `Bearer ${token}`,
         },
       });

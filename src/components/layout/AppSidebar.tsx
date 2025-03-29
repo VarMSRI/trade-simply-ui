@@ -59,7 +59,7 @@ const AppSidebar: React.FC = () => {
     <aside className="fixed inset-y-0 left-0 z-20 flex h-full w-64 flex-col border-r bg-background">
       <div className="flex h-14 items-center border-b px-4">
         <Link to="/" className="flex items-center gap-2">
-          <div className="font-bold text-xl text-primary">TradeSimply</div>
+          <div className="font-bold text-xl text-primary">Intuitifi</div>
         </Link>
       </div>
       <div className="flex-1 overflow-auto py-2">
