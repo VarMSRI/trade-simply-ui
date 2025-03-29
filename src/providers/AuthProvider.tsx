@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from "sonner";
@@ -9,6 +10,9 @@ const DEFAULT_HEADERS = {
   'Content-Type': 'application/json',
   'Accept': 'application/json'
 };
+
+// Hardcoded token for development
+const DEVELOPMENT_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJwaG9uZU51bWJlciI6Ijk2NjMwNzQ2NTUiLCJyb2xlcyI6WyJST0xFX1VTRVIiXSwibmFtZSI6Im51bGwiLCJ1c2VySWQiOiJiODk5OTZiYS04ZDcyLTRhYjktOTgxZC00MzI1MDkxY2U1YTkiLCJlbWFpbCI6ImRlZmF1bHRAZXhhbXBsZS5jb20iLCJzdWIiOiI5NjYzMDc0NjU1IiwiaWF0IjoxNzQzMjc2NDM2LCJleHAiOjE3NDMzNjI4MzZ9.m3HaDrxOGdFGHwK1UlLzQ7K_UU_qxb4fSKpafdlOWNU';
 
 interface AuthContextType {
   user: User | null;
@@ -26,30 +30,40 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  // Use the development token or check localStorage
+  const storedToken = localStorage.getItem('token') || DEVELOPMENT_TOKEN;
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const [token, setToken] = useState<string | null>(storedToken);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const navigate = useNavigate();
 
   // Check if token exists in localStorage on mount
   useEffect(() => {
     const checkAuth = async () => {
-      const storedToken = localStorage.getItem('token');
-      
-      if (storedToken) {
-        setToken(storedToken);
+      if (token) {
         try {
-          const userProfile = await fetchUserProfile(storedToken);
+          const userProfile = await fetchUserProfile(token);
           setUser(userProfile);
+          
+          // Save token to localStorage if not already there
+          if (!localStorage.getItem('token')) {
+            localStorage.setItem('token', token);
+          }
           
           // Check if profile is incomplete
           if (!userProfile.name || userProfile.email === 'default@example.com') {
             navigate('/complete-profile');
+          } else {
+            // User is authenticated and has a complete profile, navigate to dashboard
+            navigate('/');
           }
         } catch (error) {
           console.error('Failed to fetch user profile:', error);
-          localStorage.removeItem('token');
-          setToken(null);
+          // Don't clear the token in development mode to allow retrying
+          if (token !== DEVELOPMENT_TOKEN) {
+            localStorage.removeItem('token');
+            setToken(null);
+          }
         }
       }
       
