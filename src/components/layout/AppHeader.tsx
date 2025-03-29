@@ -7,7 +7,9 @@ import {
   Bell, 
   Search, 
   Settings, 
-  User 
+  User,
+  Sun,
+  Moon 
 } from 'lucide-react';
 import { 
   DropdownMenu,
@@ -17,8 +19,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useTheme } from '@/providers/ThemeProvider';
 
 const AppHeader: React.FC = () => {
+  const { theme, toggleTheme } = useTheme();
+  
   return (
     <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-30">
       <div className="flex items-center justify-between h-16 px-4 md:px-6">
@@ -32,12 +37,21 @@ const AppHeader: React.FC = () => {
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input 
             type="search" 
-            placeholder="Search for assets..." 
+            placeholder="Search for stocks..." 
             className="w-full pl-8 bg-secondary"
           />
         </div>
 
         <div className="flex items-center gap-4">
+          <Button 
+            variant="outline" 
+            size="icon"
+            onClick={toggleTheme}
+            aria-label="Toggle theme"
+          >
+            {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </Button>
+          
           <Button variant="outline" size="icon" className="relative">
             <Bell className="h-5 w-5" />
             <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[0.6rem] text-white">3</span>

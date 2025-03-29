@@ -33,15 +33,15 @@ const Trading: React.FC = () => {
 
   // Sample data - would come from your API in a real app
   const assetInfo: AssetInfo = {
-    symbol: 'AAPL',
-    name: 'Apple Inc.',
-    price: 179.50,
-    change: 3.25,
-    changePercent: 1.84,
-    volume: 45678900,
-    marketCap: 2830000000000,
-    pe: 29.8,
-    dividend: 0.92,
+    symbol: 'RELIANCE',
+    name: 'Reliance Industries Ltd.',
+    price: 2750.25,
+    change: 32.75,
+    changePercent: 1.20,
+    volume: 3254600,
+    marketCap: 18600000000000, // In INR
+    pe: 24.6,
+    dividend: 0.78,
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -55,7 +55,7 @@ const Trading: React.FC = () => {
       <div className="mb-6">
         <h1 className="text-3xl font-bold tracking-tight">Trading</h1>
         <p className="text-muted-foreground mt-1">
-          Research assets and place trades
+          Research stocks and place trades on NSE/BSE
         </p>
       </div>
 
@@ -89,13 +89,13 @@ const Trading: React.FC = () => {
             
             <Card>
               <CardHeader>
-                <CardTitle>Asset Information</CardTitle>
+                <CardTitle>Stock Information</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-4">
                   <div>
                     <div className="text-sm font-medium text-muted-foreground">Price</div>
-                    <div className="font-medium">${selectedAsset.price.toFixed(2)}</div>
+                    <div className="font-medium">₹{selectedAsset.price.toFixed(2)}</div>
                   </div>
                   <div>
                     <div className="text-sm font-medium text-muted-foreground">Change</div>
@@ -109,7 +109,7 @@ const Trading: React.FC = () => {
                   </div>
                   <div>
                     <div className="text-sm font-medium text-muted-foreground">Market Cap</div>
-                    <div className="font-medium">${(selectedAsset.marketCap / 1000000000).toFixed(2)}B</div>
+                    <div className="font-medium">₹{(selectedAsset.marketCap / 10000000000).toFixed(2)}Cr</div>
                   </div>
                   <div>
                     <div className="text-sm font-medium text-muted-foreground">P/E Ratio</div>
