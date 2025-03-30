@@ -1,17 +1,12 @@
 
-import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Watchlist, WatchlistItem, Instrument, AddInstrumentDTO } from '@/types/watchlist';
+import { WatchlistItem, Instrument, AddInstrumentDTO, Watchlist } from '@/types/watchlist';
 import api from '@/services/api';
 import instrumentService from '@/services/instrumentService';
 import { toast } from 'sonner';
+import { WatchlistAction } from './watchlistReducer';
 
-export const useWatchlistInstruments = () => {
-  const [isAddingSymbol, setIsAddingSymbol] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Instrument[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  
+export const useWatchlistInstruments = (state: any, dispatch: React.Dispatch<WatchlistAction>) => {
   const queryClient = useQueryClient();
 
   // Add instrument mutation
@@ -29,9 +24,8 @@ export const useWatchlistInstruments = () => {
         )
       );
       
-      setIsAddingSymbol(false);
-      setSearchQuery('');
-      setSearchResults([]);
+      dispatch({ type: 'SET_ADDING_SYMBOL', payload: false });
+      dispatch({ type: 'RESET_SEARCH' });
       toast.success('Symbol added to watchlist successfully');
     },
     onError: (error: Error) => {
@@ -61,18 +55,18 @@ export const useWatchlistInstruments = () => {
     },
   });
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
+  const handleSearch = async (query: string = state.searchQuery) => {
+    if (!query.trim()) return;
     
-    setIsSearching(true);
+    dispatch({ type: 'SET_IS_SEARCHING', payload: true });
     try {
-      const results = await instrumentService.searchInstruments(searchQuery);
-      setSearchResults(results);
+      const results = await instrumentService.searchInstruments(query);
+      dispatch({ type: 'SET_SEARCH_RESULTS', payload: results });
     } catch (error) {
       console.error('Error searching instruments:', error);
       toast.error('Failed to search instruments');
     } finally {
-      setIsSearching(false);
+      dispatch({ type: 'SET_IS_SEARCHING', payload: false });
     }
   };
 
@@ -110,14 +104,6 @@ export const useWatchlistInstruments = () => {
   };
 
   return {
-    // State
-    isAddingSymbol,
-    setIsAddingSymbol,
-    searchQuery,
-    setSearchQuery,
-    searchResults,
-    isSearching,
-    
     // Handlers
     handleSearch,
     handleAddInstrument,

@@ -1,17 +1,11 @@
 
-import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Watchlist } from '@/types/watchlist';
 import api from '@/services/api';
 import { toast } from 'sonner';
+import { WatchlistAction } from './watchlistReducer';
 
-export const useWatchlistMutations = () => {
-  const [newWatchlistName, setNewWatchlistName] = useState('');
-  const [isCreatingWatchlist, setIsCreatingWatchlist] = useState(false);
-  const [isEditingWatchlist, setIsEditingWatchlist] = useState(false);
-  const [editingWatchlist, setEditingWatchlist] = useState<Watchlist | null>(null);
-  const [editingWatchlistName, setEditingWatchlistName] = useState('');
-  
+export const useWatchlistMutations = (state: any, dispatch: React.Dispatch<WatchlistAction>) => {
   const queryClient = useQueryClient();
 
   // Create watchlist mutation
@@ -22,8 +16,8 @@ export const useWatchlistMutations = () => {
       queryClient.setQueryData(['watchlists'], (oldWatchlists: any) => 
         [...(oldWatchlists || []), newWatchlist]
       );
-      setNewWatchlistName('');
-      setIsCreatingWatchlist(false);
+      
+      dispatch({ type: 'RESET_WATCHLIST_FORM' });
       toast.success('Watchlist created successfully');
     },
     onError: (error: Error) => {
@@ -42,7 +36,8 @@ export const useWatchlistMutations = () => {
           watchlist.id === updatedWatchlist.id ? updatedWatchlist : watchlist
         )
       );
-      setIsEditingWatchlist(false);
+      
+      dispatch({ type: 'SET_EDITING_WATCHLIST', payload: false });
       toast.success('Watchlist updated successfully');
     },
     onError: (error: Error) => {
@@ -66,7 +61,7 @@ export const useWatchlistMutations = () => {
   });
 
   const handleCreateWatchlist = () => {
-    if (!newWatchlistName.trim()) {
+    if (!state.newWatchlistName.trim()) {
       toast.error('Please enter a watchlist name');
       return;
     }
@@ -77,20 +72,20 @@ export const useWatchlistMutations = () => {
       return;
     }
     
-    createWatchlistMutation.mutate({ name: newWatchlistName });
+    createWatchlistMutation.mutate({ name: state.newWatchlistName });
   };
 
   const handleUpdateWatchlist = () => {
-    if (!editingWatchlist) return;
+    if (!state.editingWatchlist) return;
     
-    if (!editingWatchlistName.trim()) {
+    if (!state.editingWatchlistName.trim()) {
       toast.error('Please enter a watchlist name');
       return;
     }
     
     updateWatchlistMutation.mutate({ 
-      id: editingWatchlist.id, 
-      data: { name: editingWatchlistName } 
+      id: state.editingWatchlist.id, 
+      data: { name: state.editingWatchlistName } 
     });
   };
 
@@ -99,23 +94,10 @@ export const useWatchlistMutations = () => {
   };
 
   const startEditingWatchlist = (watchlist: Watchlist) => {
-    setEditingWatchlist(watchlist);
-    setEditingWatchlistName(watchlist.name);
-    setIsEditingWatchlist(true);
+    dispatch({ type: 'START_EDITING_WATCHLIST', payload: watchlist });
   };
 
   return {
-    // State
-    newWatchlistName,
-    setNewWatchlistName,
-    isCreatingWatchlist,
-    setIsCreatingWatchlist,
-    isEditingWatchlist,
-    setIsEditingWatchlist,
-    editingWatchlist,
-    editingWatchlistName,
-    setEditingWatchlistName,
-    
     // Handlers
     handleCreateWatchlist,
     handleUpdateWatchlist,
