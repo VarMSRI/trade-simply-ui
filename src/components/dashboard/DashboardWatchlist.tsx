@@ -23,8 +23,10 @@ const DashboardWatchlist: React.FC = () => {
   const { data: watchlists = [], isLoading } = useQuery({
     queryKey: ['watchlists'],
     queryFn: api.watchlist.getAll,
-    onError: (error) => {
-      console.error('Error loading watchlists:', error);
+    meta: {
+      onError: (error: Error) => {
+        console.error('Error loading watchlists:', error);
+      }
     }
   });
 
