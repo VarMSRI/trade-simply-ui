@@ -19,6 +19,8 @@ export interface Watchlist {
   items: WatchlistItem[];
 }
 
+export type WatchlistType = Watchlist;
+
 export interface CreateWatchlistRequest {
   name: string;
 }

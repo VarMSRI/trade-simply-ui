@@ -1,6 +1,7 @@
 
 import React from 'react';
 import WatchlistComponent from '@/components/dashboard/Watchlist';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const WatchlistPage: React.FC = () => {
   return (

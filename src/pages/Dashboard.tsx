@@ -3,7 +3,7 @@ import React from 'react';
 import PortfolioSummary from '@/components/dashboard/PortfolioSummary';
 import StockChart from '@/components/dashboard/StockChart';
 import PortfolioHoldings from '@/components/dashboard/PortfolioHoldings';
-import Watchlist from '@/components/dashboard/Watchlist';
+import DashboardWatchlist from '@/components/dashboard/DashboardWatchlist';
 import OrderForm from '@/components/trading/OrderForm';
 import MarketNews from '@/components/dashboard/MarketNews';
 
@@ -28,7 +28,7 @@ const Dashboard: React.FC = () => {
         <PortfolioHoldings />
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Watchlist />
+          <DashboardWatchlist />
           <MarketNews />
         </div>
       </div>
