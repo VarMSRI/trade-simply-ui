@@ -10,6 +10,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import Dashboard from "@/pages/Dashboard";
 import Trading from "@/pages/Trading";
 import Portfolio from "@/pages/Portfolio";
+import Watchlist from "@/pages/Watchlist";
 import Login from "@/pages/Login";
 import VerifyOtp from "@/pages/VerifyOtp";
 import CompleteProfile from "@/pages/CompleteProfile";
@@ -81,6 +82,16 @@ const App = () => (
                   <ProtectedRoute>
                     <AppLayout>
                       <Portfolio />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route 
+                path="/watchlist" 
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Watchlist />
                     </AppLayout>
                   </ProtectedRoute>
                 }
