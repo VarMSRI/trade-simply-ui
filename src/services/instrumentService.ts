@@ -5,6 +5,7 @@ import Papa from 'papaparse';
 class InstrumentService {
   private instruments: Instrument[] = [];
   private isLoaded = false;
+  private isLoading = false;
 
   constructor() {
     this.loadInstruments();
@@ -12,9 +13,43 @@ class InstrumentService {
 
   private async loadInstruments() {
     try {
-      // In a real app, this would be a CSV file stored in the public folder
-      // For demo purposes, we'll create a mock CSV content with a few instruments
-      const csvContent = `instrument_token,exchange_token,tradingsymbol,name,last_price,tick_size,instrument_type,segment,exchange,strike,lot_size,expiry
+      if (this.isLoading) return;
+      this.isLoading = true;
+      
+      const response = await fetch('/instruments.csv');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch CSV: ${response.status} ${response.statusText}`);
+      }
+      
+      const csvText = await response.text();
+      
+      const { data } = Papa.parse<Instrument>(csvText, {
+        header: true,
+        dynamicTyping: true, // Automatically convert strings to numbers where appropriate
+        skipEmptyLines: true,
+      });
+
+      this.instruments = data.filter(instrument => 
+        instrument.instrument_token && 
+        instrument.tradingsymbol
+      );
+      
+      this.isLoaded = true;
+      this.isLoading = false;
+      console.log('Instruments loaded:', this.instruments.length);
+    } catch (error) {
+      console.error('Failed to load instruments:', error);
+      this.isLoading = false;
+      
+      // Fallback to mock data in case the file isn't available
+      this.loadMockInstruments();
+    }
+  }
+  
+  private loadMockInstruments() {
+    console.warn('Loading mock instruments as fallback');
+    // Mock CSV content with a few instruments
+    const csvContent = `instrument_token,exchange_token,tradingsymbol,name,last_price,tick_size,instrument_type,segment,exchange,strike,lot_size,expiry
 256265,1000,RELIANCE,Reliance Industries Ltd.,2750.25,0.05,EQ,NSE,NSE,0,1,
 60193,235,TCS,Tata Consultancy Services Ltd.,3640.80,0.05,EQ,NSE,NSE,0,1,
 738561,2886,HDFCBANK,HDFC Bank Ltd.,1590.45,0.05,EQ,NSE,NSE,0,1,
@@ -31,18 +66,13 @@ class InstrumentService {
 341249,1333,BHARTIARTL,Bharti Airtel Ltd.,1420.80,0.05,EQ,NSE,NSE,0,1,
 2714625,10604,HINDUNILVR,Hindustan Unilever Ltd.,2510.95,0.05,EQ,NSE,NSE,0,1,`;
 
-      // Parse the CSV content
-      const { data } = Papa.parse<Instrument>(csvContent, {
-        header: true,
-        dynamicTyping: true, // Automatically convert strings to numbers where appropriate
-      });
+    const { data } = Papa.parse<Instrument>(csvContent, {
+      header: true,
+      dynamicTyping: true,
+    });
 
-      this.instruments = data;
-      this.isLoaded = true;
-      console.log('Instruments loaded:', this.instruments.length);
-    } catch (error) {
-      console.error('Failed to load instruments:', error);
-    }
+    this.instruments = data;
+    this.isLoaded = true;
   }
 
   public async searchInstruments(query: string): Promise<Instrument[]> {
