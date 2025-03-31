@@ -17,6 +17,6 @@ export default defineConfig(({ mode }) => ({
   },
   server: {
     port: 8080,
-    allowedHosts: 'all' // Allow all hosts to connect to the dev server
+    allowedHosts: true // Changed from 'all' to true to match the expected type
   }
 }))
