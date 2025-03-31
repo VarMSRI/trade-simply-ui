@@ -1,9 +1,8 @@
 
 import React from 'react';
 import { Input } from '@/components/ui/input';
-import { Loader2 } from 'lucide-react';
-import { Search } from 'lucide-react';
-import { Alert, AlertCircle, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Loader2, Search, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface SearchBarProps {
   searchQuery: string;

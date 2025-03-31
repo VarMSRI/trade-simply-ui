@@ -2,6 +2,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useTheme } from '@/providers/ThemeProvider';
 
 // TradingView widget interface
 declare global {
@@ -26,6 +27,7 @@ const StockChart: React.FC<StockChartProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetRef = useRef<any>(null);
   const timeframes = ['1D', '5D', '1M', '3M', '6M', 'YTD', '1Y', '5Y', 'All'];
+  const { theme } = useTheme();
 
   useEffect(() => {
     // Load TradingView widget script if it hasn't been loaded yet
@@ -50,7 +52,7 @@ const StockChart: React.FC<StockChartProps> = ({
         }
       }
     };
-  }, [symbol]);
+  }, [symbol, theme]);
 
   const createWidget = () => {
     if (!containerRef.current || !window.TradingView) return;
@@ -67,14 +69,27 @@ const StockChart: React.FC<StockChartProps> = ({
       symbol: formattedSymbol,
       interval: 'D',
       timezone: 'Asia/Kolkata',
-      theme: 'light',
+      theme: theme === 'dark' ? 'dark' : 'light',
       style: '1',
       locale: 'in',
-      toolbar_bg: '#f1f3f6',
+      toolbar_bg: theme === 'dark' ? '#222222' : '#f1f3f6',
       enable_publishing: false,
       allow_symbol_change: true,
       container_id: containerRef.current.id,
       hide_side_toolbar: false,
+      backgroundColor: theme === 'dark' ? '#222222' : '#ffffff',
+      gridColor: theme === 'dark' ? '#333333' : '#e0e0e0',
+      studies_overrides: {
+        "volume.volume.color.0": theme === 'dark' ? "#FF3A30" : "#FF3A30",
+        "volume.volume.color.1": theme === 'dark' ? "#4BB543" : "#4BB543",
+      },
+      overrides: {
+        "paneProperties.background": theme === 'dark' ? "#222222" : "#ffffff",
+        "paneProperties.vertGridProperties.color": theme === 'dark' ? "#333333" : "#e0e0e0",
+        "paneProperties.horzGridProperties.color": theme === 'dark' ? "#333333" : "#e0e0e0",
+        "symbolWatermarkProperties.transparency": 90,
+        "scalesProperties.textColor": theme === 'dark' ? "#AAA" : "#333",
+      }
     });
   };
 
