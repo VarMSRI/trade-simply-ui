@@ -1,5 +1,4 @@
-
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/providers/ThemeProvider';
@@ -20,12 +19,13 @@ interface StockChartProps {
 }
 
 const StockChart: React.FC<StockChartProps> = ({ 
-  symbol = "AAPL", 
-  name = "Apple Inc.", 
+  symbol = "RELIANCE", 
+  name = "Reliance Industries Ltd.", 
   data 
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetRef = useRef<any>(null);
+  const [currentInterval, setCurrentInterval] = useState<string>('D');
   const timeframes = ['1D', '5D', '1M', '3M', '6M', 'YTD', '1Y', '5Y', 'All'];
   const { theme } = useTheme();
 
@@ -52,7 +52,7 @@ const StockChart: React.FC<StockChartProps> = ({
         }
       }
     };
-  }, [symbol, theme]);
+  }, [symbol, theme, currentInterval]);
 
   const createWidget = () => {
     if (!containerRef.current || !window.TradingView) return;
@@ -60,17 +60,28 @@ const StockChart: React.FC<StockChartProps> = ({
     // Clear previous widget
     containerRef.current.innerHTML = '';
 
-    // For Indian stocks, we'll use NSE: or BSE: prefix
-    const formattedSymbol = symbol?.includes(':') ? symbol : `NSE:${symbol}`;
+    // Format the symbol properly based on pattern
+    // If it already contains a colon (like NSE:RELIANCE), use it as is
+    // Otherwise, add NSE: prefix for Indian stocks
+    let formattedSymbol = symbol || "RELIANCE";
+    
+    // Don't modify symbols that already contain an exchange prefix
+    if (!formattedSymbol.includes(':')) {
+      // Remove any special characters except alphanumeric and dots
+      formattedSymbol = formattedSymbol.replace(/[^a-zA-Z0-9.]/g, '');
+      formattedSymbol = `NSE:${formattedSymbol}`;
+    }
+
+    console.log("Creating TradingView widget with symbol:", formattedSymbol);
 
     widgetRef.current = new window.TradingView.widget({
       width: '100%',
       height: 400,
       symbol: formattedSymbol,
-      interval: 'D',
+      interval: currentInterval,
       timezone: 'Asia/Kolkata',
       theme: theme === 'dark' ? 'dark' : 'light',
-      style: '1',
+      style: '1', // '1' for line style
       locale: 'in',
       toolbar_bg: theme === 'dark' ? '#222222' : '#f1f3f6',
       enable_publishing: false,
@@ -89,46 +100,47 @@ const StockChart: React.FC<StockChartProps> = ({
         "paneProperties.horzGridProperties.color": theme === 'dark' ? "#333333" : "#e0e0e0",
         "symbolWatermarkProperties.transparency": 90,
         "scalesProperties.textColor": theme === 'dark' ? "#AAA" : "#333",
-      }
+      },
+      // Adding supported exchanges for Indian market
+      supported_resolutions: ["1", "5", "15", "30", "60", "D", "W", "M"],
+      supported_exchanges: ["NSE", "BSE"],
+      disabled_features: ["use_localstorage_for_settings"],
+      enabled_features: ["save_chart_properties_to_local_storage"]
     });
   };
 
   // Handle timeframe changes
   const handleTimeframeChange = (timeframe: string) => {
-    if (!widgetRef.current) return;
+    let interval = 'D'; // Default interval
     
-    // Map timeframes to TradingView intervals
-    let interval = 'D';
     switch (timeframe) {
       case '1D':
-        interval = '30';
+        interval = '30'; // 30 minutes for intraday
         break;
       case '5D':
-        interval = '60';
+        interval = '60'; // 1 hour for 5-day view
         break;
       case '1M':
-        interval = 'D';
+        interval = 'D'; // Daily for 1 month
         break;
       case '3M':
-        interval = 'W';
-        break;
       case '6M':
+        interval = 'W'; // Weekly for 3-6 months
+        break;
       case 'YTD':
       case '1Y':
-        interval = 'W';
+        interval = 'W'; // Weekly for YTD/1Y
         break;
       case '5Y':
       case 'All':
-        interval = 'M';
+        interval = 'M'; // Monthly for long term
         break;
       default:
-        interval = 'D';
+        interval = 'D'; // Default to daily
     }
     
-    // Change widget interval by recreating it
-    if (containerRef.current) {
-      createWidget();
-    }
+    // Update the interval state
+    setCurrentInterval(interval);
   };
 
   return (
@@ -137,7 +149,7 @@ const StockChart: React.FC<StockChartProps> = ({
         <div>
           <CardTitle className="text-lg">{symbol} | {name}</CardTitle>
         </div>
-        <div className="flex gap-1">
+        <div className="flex gap-1 flex-wrap">
           {timeframes.map((timeframe) => (
             <Button 
               key={timeframe} 
