@@ -17,9 +17,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Plus, Search, Loader2 } from 'lucide-react';
+import { Plus, Loader2 } from 'lucide-react';
 import { Instrument, Watchlist } from '@/types/watchlist';
+import SearchInputField from './watchlist/SearchInputField';
 
 interface AddSymbolDialogProps {
   watchlistId: number;
@@ -88,15 +88,11 @@ const AddSymbolDialog: React.FC<AddSymbolDialogProps> = ({
         <DialogHeader>
           <DialogTitle>Add Symbol to Watchlist</DialogTitle>
         </DialogHeader>
-        <div className="flex items-center space-x-2">
-          <div className="grid flex-1 gap-2">
-            <Input
-              placeholder="Search symbol or company name"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </div>
+        
+        <SearchInputField 
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+        />
         
         <div className="max-h-72 overflow-y-auto">
           {isMobile && searchResults.length > 0 && watchlists && watchlists.length > 0 ? (

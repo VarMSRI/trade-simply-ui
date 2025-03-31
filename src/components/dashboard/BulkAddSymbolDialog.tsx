@@ -5,21 +5,9 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Search, Loader2 } from 'lucide-react';
 import { Instrument, Watchlist, AddInstrumentDTO } from '@/types/watchlist';
+import BulkAddDialogContent from './watchlist/BulkAddDialogContent';
 
 interface BulkAddSymbolDialogProps {
   isOpen: boolean;
@@ -105,19 +93,9 @@ const BulkAddSymbolDialog: React.FC<BulkAddSymbolDialogProps> = ({
     onOpenChange(false);
   };
   
-  // Check if instrument is already in the watchlist
-  const isInWatchlist = (instrument: Instrument) => {
-    if (!currentWatchlist) return false;
-    return currentWatchlist.items.some(
-      item => item.instrument_key === instrument.instrument_token
-    );
-  };
-  
   const remainingSlots = currentWatchlist 
     ? 10 - currentWatchlist.items.length 
     : 0;
-  
-  const isAtLimit = selectedInstruments.length >= remainingSlots;
   
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -126,96 +104,18 @@ const BulkAddSymbolDialog: React.FC<BulkAddSymbolDialogProps> = ({
           <DialogTitle>Add Multiple Symbols to Watchlist</DialogTitle>
         </DialogHeader>
         
-        {currentWatchlist && remainingSlots <= 0 ? (
-          <div className="text-center py-4">
-            <p className="text-sm text-destructive">
-              This watchlist has reached its maximum capacity of 10 symbols.
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="flex items-center space-x-2">
-              <div className="grid flex-1 gap-2">
-                <Input
-                  placeholder="Search symbol or company name"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-            </div>
-            
-            {currentWatchlist && (
-              <div className="text-sm text-muted-foreground">
-                You can select up to {remainingSlots} more symbols. Selected: {selectedInstruments.length}
-              </div>
-            )}
-            
-            <div className="max-h-72 overflow-y-auto">
-              {isSearching ? (
-                <div className="flex justify-center p-4">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : searchResults.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-12"></TableHead>
-                      <TableHead>Symbol</TableHead>
-                      <TableHead>Name</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {searchResults.map((instrument) => {
-                      const isDisabled = isInWatchlist(instrument) || 
-                        (isAtLimit && !selectedInstruments.some(
-                          item => item.instrument_token === instrument.instrument_token
-                        ));
-                      
-                      return (
-                        <TableRow key={instrument.instrument_token}>
-                          <TableCell className="text-center">
-                            <Checkbox 
-                              checked={selectedInstruments.some(
-                                item => item.instrument_token === instrument.instrument_token
-                              )}
-                              disabled={isDisabled}
-                              onCheckedChange={(checked) => 
-                                handleCheckboxChange(instrument, checked === true)
-                              }
-                            />
-                          </TableCell>
-                          <TableCell className="font-medium">{instrument.tradingsymbol}</TableCell>
-                          <TableCell>{instrument.name}</TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              ) : searchQuery.trim().length >= 2 && !isSearching ? (
-                <p className="text-sm text-center py-4 text-muted-foreground">No results found</p>
-              ) : searchQuery.trim().length > 0 && searchQuery.trim().length < 2 ? (
-                <p className="text-sm text-center py-4 text-muted-foreground">Type at least 2 characters to search</p>
-              ) : null}
-            </div>
-            
-            <DialogFooter className="flex justify-between items-center">
-              <div className="text-sm">
-                {selectedInstruments.length} symbols selected
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={handleClose}>
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={handleAddSelected}
-                  disabled={selectedInstruments.length === 0}
-                >
-                  Add Selected
-                </Button>
-              </div>
-            </DialogFooter>
-          </>
-        )}
+        <BulkAddDialogContent
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          selectedInstruments={selectedInstruments}
+          currentWatchlist={currentWatchlist}
+          remainingSlots={remainingSlots}
+          handleClose={handleClose}
+          handleAddSelected={handleAddSelected}
+          isSearching={isSearching}
+          searchResults={searchResults}
+          onCheckboxChange={handleCheckboxChange}
+        />
       </DialogContent>
     </Dialog>
   );
