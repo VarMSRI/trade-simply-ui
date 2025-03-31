@@ -1,10 +1,11 @@
 
-import React, { useState } from 'react';
-import { formatDistanceToNow, format } from 'date-fns';
+import React from 'react';
+import { format, formatDistanceToNow } from 'date-fns';
 import { Loader2 } from 'lucide-react';
-import { Alert, AlertCircle, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Order, OrderStatus, OrderType } from '@/types/order';
 import {
   Table,
   TableBody,
@@ -13,21 +14,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Order, OrderStatus } from '@/types/order';
-import OrderDetails from './OrderDetails';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface OrdersTableProps {
   orders: Order[];
   isLoading: boolean;
-  error: any;
-  pagination: {
-    totalPages: number;
-    totalElements: number;
-    currentPage: number;
-    pageSize: number;
-  } | undefined;
-  onPageChange: (page: number) => void;
-  page: number;
+  error: unknown;
+  onViewDetails: (order: Order) => void;
   onCancelOrder: (orderId: string) => void;
   isCancellingOrder: boolean;
 }
@@ -36,15 +29,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   orders,
   isLoading,
   error,
-  pagination,
-  onPageChange,
-  page,
+  onViewDetails,
   onCancelOrder,
   isCancellingOrder,
 }) => {
-  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
-  
-  const getOrderStatusBadge = (status: string) => {
+  const getOrderStatusBadge = (status: OrderStatus) => {
     switch (status) {
       case 'PENDING':
         return <Badge variant="outline" className="bg-yellow-100 text-yellow-800">Pending</Badge>;
@@ -57,128 +46,97 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     }
   };
   
-  const handleCancelOrder = (orderId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (window.confirm('Are you sure you want to cancel this order?')) {
-      onCancelOrder(orderId);
+  const getOrderTypeBadge = (orderType: OrderType) => {
+    switch (orderType) {
+      case 'MARKET':
+        return <Badge variant="outline" className="bg-blue-100 text-blue-800">Market</Badge>;
+      case 'LIMIT':
+        return <Badge variant="outline" className="bg-purple-100 text-purple-800">Limit</Badge>;
+      case 'GTT':
+        return <Badge variant="outline" className="bg-indigo-100 text-indigo-800">GTT</Badge>;
+      case 'SHORT_SELL':
+        return <Badge variant="outline" className="bg-red-100 text-red-800">Short</Badge>;
+      case 'COVER':
+        return <Badge variant="outline" className="bg-green-100 text-green-800">Cover</Badge>;
+      default:
+        return <Badge variant="outline">{orderType}</Badge>;
     }
   };
-  
-  const renderPagination = () => {
-    if (!pagination) return null;
     
-    return (
-      <div className="flex items-center justify-between px-2 py-4">
-        <div className="text-sm text-muted-foreground">
-          Showing {orders.length} of {pagination.totalElements} results
-        </div>
-        <div className="flex space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onPageChange(page - 1)}
-            disabled={page === 0}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onPageChange(page + 1)}
-            disabled={page >= pagination.totalPages - 1}
-          >
-            Next
-          </Button>
-        </div>
-      </div>
-    );
-  };
-  
   if (isLoading) {
     return (
-      <div className="flex justify-center py-8">
+      <div className="flex justify-center p-8">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
-  
+
   if (error) {
     return (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
         <AlertTitle>Error</AlertTitle>
-        <AlertDescription>Failed to load orders. Please try again.</AlertDescription>
+        <AlertDescription>Failed to fetch orders. Please try again.</AlertDescription>
       </Alert>
     );
   }
-  
+
   if (orders.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-muted-foreground">No orders found</p>
-      </div>
-    );
+    return <p className="text-center py-8 text-muted-foreground">No orders found.</p>;
   }
-  
+
   return (
-    <div className="rounded-md border">
+    <div className="overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead>Order ID</TableHead>
             <TableHead>Instrument</TableHead>
             <TableHead>Type</TableHead>
             <TableHead>Quantity</TableHead>
             <TableHead>Price</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Date</TableHead>
+            <TableHead>Created</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {orders.map((order) => (
-            <React.Fragment key={order.id}>
-              <TableRow 
-                className="cursor-pointer hover:bg-muted/50"
-                onClick={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)}
-              >
-                <TableCell className="font-medium">{order.instrumentToken}</TableCell>
-                <TableCell>
-                  <Badge variant="outline">{order.orderType}</Badge>
-                </TableCell>
-                <TableCell>{order.quantity}</TableCell>
-                <TableCell>
-                  {order.price ? `₹${order.price.toFixed(2)}` : 'Market'}
-                </TableCell>
-                <TableCell>{getOrderStatusBadge(order.status)}</TableCell>
-                <TableCell title={format(new Date(order.createdAt), 'PPp')}>
-                  {formatDistanceToNow(new Date(order.createdAt), { addSuffix: true })}
-                </TableCell>
-                <TableCell>
+            <TableRow key={order.id}>
+              <TableCell className="font-medium">{order.id.slice(0, 8)}...</TableCell>
+              <TableCell>{order.instrumentToken}</TableCell>
+              <TableCell>{getOrderTypeBadge(order.orderType)}</TableCell>
+              <TableCell>{order.quantity}</TableCell>
+              <TableCell>₹{order.price.toFixed(2)}</TableCell>
+              <TableCell>{getOrderStatusBadge(order.status)}</TableCell>
+              <TableCell title={format(new Date(order.createdAt), 'PPpp')}>
+                {formatDistanceToNow(new Date(order.createdAt), { addSuffix: true })}
+              </TableCell>
+              <TableCell>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => onViewDetails(order)}
+                  >
+                    View
+                  </Button>
                   {order.status === 'PENDING' && (
                     <Button 
-                      variant="outline" 
+                      variant="destructive" 
                       size="sm" 
-                      className="text-red-600 hover:text-red-700"
-                      onClick={(e) => handleCancelOrder(order.id, e)}
+                      onClick={() => onCancelOrder(order.id)}
                       disabled={isCancellingOrder}
                     >
                       Cancel
                     </Button>
                   )}
-                </TableCell>
-              </TableRow>
-              {expandedOrderId === order.id && (
-                <TableRow>
-                  <TableCell colSpan={7} className="p-4 bg-muted/30">
-                    <OrderDetails order={order} />
-                  </TableCell>
-                </TableRow>
-              )}
-            </React.Fragment>
+                </div>
+              </TableCell>
+            </TableRow>
           ))}
         </TableBody>
       </Table>
-      {renderPagination()}
     </div>
   );
 };
