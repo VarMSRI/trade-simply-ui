@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { Loader2 } from 'lucide-react';
@@ -19,7 +18,15 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 interface OrdersTableProps {
   orders: Order[];
   isLoading: boolean;
-  error: unknown;
+  error: Error | null;
+  pagination: {
+    totalPages: number;
+    totalElements: number;
+    currentPage: number;
+    pageSize: number;
+  };
+  onPageChange: (page: number) => void;
+  page: number;
   onViewDetails: (order: Order) => void;
   onCancelOrder: (orderId: string) => void;
   isCancellingOrder: boolean;
@@ -29,6 +36,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   orders,
   isLoading,
   error,
+  pagination,
+  onPageChange,
+  page,
   onViewDetails,
   onCancelOrder,
   isCancellingOrder,
