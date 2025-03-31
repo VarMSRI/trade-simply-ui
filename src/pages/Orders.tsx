@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useOrders } from '@/hooks/useOrders';
-import { OrderStatus } from '@/types/order';
+import { Order, OrderStatus } from '@/types/order';
 import {
   Card,
   CardContent,
@@ -20,6 +20,7 @@ const Orders: React.FC = () => {
   const [endDate, setEndDate] = useState<string>('');
   const [page, setPage] = useState(0);
   const [pageSize] = useState(10);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   
   const isMobile = useIsMobile();
   
@@ -43,6 +44,12 @@ const Orders: React.FC = () => {
     setStartDate('');
     setEndDate('');
     setPage(0);
+  };
+
+  const handleViewDetails = (order: Order) => {
+    setSelectedOrder(order);
+    // Here you would typically open a modal or navigate to a details page
+    console.log("View details for order:", order);
   };
   
   return (
@@ -92,6 +99,7 @@ const Orders: React.FC = () => {
               pagination={pagination}
               onPageChange={setPage}
               page={page}
+              onViewDetails={handleViewDetails}
               onCancelOrder={cancelOrder}
               isCancellingOrder={isCancellingOrder}
             />
