@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Star, Loader2 } from 'lucide-react';
@@ -8,8 +8,12 @@ import WatchlistCard from './WatchlistCard';
 import CreateWatchlistDialog from './CreateWatchlistDialog';
 import EditWatchlistDialog from './EditWatchlistDialog';
 import AddSymbolDialog from './AddSymbolDialog';
+import BulkAddSymbolDialog from './BulkAddSymbolDialog';
 
 const Watchlist: React.FC = () => {
+  const [selectedWatchlistForBulk, setSelectedWatchlistForBulk] = useState<number>(-1);
+  const [isBulkAddOpen, setIsBulkAddOpen] = useState(false);
+  
   const { 
     watchlists,
     isLoading,
@@ -36,6 +40,11 @@ const Watchlist: React.FC = () => {
     handleBulkAddInstruments,
     startEditingWatchlist,
   } = useWatchlistOperations();
+
+  const handleOpenBulkAdd = (watchlistId: number) => {
+    setSelectedWatchlistForBulk(watchlistId);
+    setIsBulkAddOpen(true);
+  };
 
   if (error) {
     return (
@@ -71,7 +80,7 @@ const Watchlist: React.FC = () => {
               onDeleteWatchlist={handleDeleteWatchlist}
               onRemoveInstrument={handleRemoveInstrument}
               onAddInstrument={handleAddInstrument}
-              onBulkAddInstruments={handleBulkAddInstruments}
+              onBulkAddInstruments={handleOpenBulkAdd}
               searchInstruments={handleSearch}
               searchResults={searchResults}
               isSearching={isSearching}
@@ -121,6 +130,18 @@ const Watchlist: React.FC = () => {
         isSearching={isSearching}
         watchlists={watchlists}
         isMobile={true}
+      />
+
+      {/* Bulk Add Symbol Dialog */}
+      <BulkAddSymbolDialog
+        isOpen={isBulkAddOpen}
+        onOpenChange={setIsBulkAddOpen}
+        watchlistId={selectedWatchlistForBulk}
+        watchlists={watchlists}
+        onBulkAddInstruments={handleBulkAddInstruments}
+        searchInstruments={handleSearch}
+        searchResults={searchResults}
+        isSearching={isSearching}
       />
     </div>
   );

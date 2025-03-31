@@ -43,7 +43,7 @@ const WatchlistItemsTable: React.FC<WatchlistItemsTableProps> = ({
             variant="link"
             onClick={() => onBulkAdd(watchlistId)}
           >
-            Add popular symbols
+            Add multiple symbols
           </Button>
         </div>
       </div>
@@ -59,7 +59,7 @@ const WatchlistItemsTable: React.FC<WatchlistItemsTableProps> = ({
           onClick={() => onBulkAdd(watchlistId)}
           className="flex items-center gap-1"
         >
-          <Plus className="h-3 w-3" /> Add popular symbols
+          <Plus className="h-3 w-3" /> Add multiple symbols
         </Button>
       </div>
       <Table>
