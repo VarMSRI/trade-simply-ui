@@ -33,6 +33,7 @@ const Watchlist: React.FC = () => {
     handleSearch,
     handleAddInstrument,
     handleRemoveInstrument,
+    handleBulkAddInstruments,
     startEditingWatchlist,
   } = useWatchlistOperations();
 
@@ -61,7 +62,7 @@ const Watchlist: React.FC = () => {
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : watchlists.length > 0 ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className={`grid grid-cols-1 ${watchlists.length === 1 ? 'lg:grid-cols-1' : 'lg:grid-cols-2'} gap-6`}>
           {watchlists.map((watchlist) => (
             <WatchlistCard
               key={watchlist.id}
@@ -70,6 +71,7 @@ const Watchlist: React.FC = () => {
               onDeleteWatchlist={handleDeleteWatchlist}
               onRemoveInstrument={handleRemoveInstrument}
               onAddInstrument={handleAddInstrument}
+              onBulkAddInstruments={handleBulkAddInstruments}
               searchInstruments={handleSearch}
               searchResults={searchResults}
               isSearching={isSearching}

@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
@@ -19,15 +19,61 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuGroup
 } from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { useTheme } from '@/providers/ThemeProvider';
 import { useAuth } from '@/providers/AuthProvider';
+import instrumentService from '@/services/instrumentService';
+import { Instrument } from '@/types/watchlist';
 
 const AppHeader: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Instrument[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+
+    setIsSearching(true);
+    setIsSearchOpen(true);
+
+    try {
+      const results = await instrumentService.searchInstruments(searchQuery);
+      setSearchResults(results);
+    } catch (error) {
+      console.error('Error searching instruments:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSelectInstrument = (instrument: Instrument) => {
+    setIsSearchOpen(false);
+    setSearchQuery('');
+    
+    // Navigate to trading page with the selected instrument
+    navigate(`/trading?symbol=${instrument.tradingsymbol}`);
+  };
+
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    if (!e.target.value.trim()) {
+      setSearchResults([]);
+    }
+  };
+
   return (
     <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-30">
       <div className="flex items-center justify-between h-16 px-4 md:px-6">
@@ -38,12 +84,40 @@ const AppHeader: React.FC = () => {
         </div>
         
         <div className="hidden md:flex items-center relative w-80">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input 
-            type="search" 
-            placeholder="Search for stocks..." 
-            className="w-full pl-8 bg-secondary"
-          />
+          <form onSubmit={handleSearch} className="w-full relative">
+            <Popover open={isSearchOpen && searchResults.length > 0} onOpenChange={setIsSearchOpen}>
+              <PopoverTrigger asChild>
+                <div className="relative w-full">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    type="search" 
+                    placeholder="Search for stocks..." 
+                    className="w-full pl-8 bg-secondary"
+                    value={searchQuery}
+                    onChange={handleSearchInputChange}
+                  />
+                </div>
+              </PopoverTrigger>
+              <PopoverContent className="p-0 w-80" align="end">
+                {isSearching ? (
+                  <div className="p-4 text-center text-muted-foreground">Searching...</div>
+                ) : searchResults.length > 0 ? (
+                  <div className="max-h-[300px] overflow-auto">
+                    {searchResults.map((instrument) => (
+                      <button
+                        key={instrument.instrument_token}
+                        onClick={() => handleSelectInstrument(instrument)}
+                        className="w-full flex flex-col items-start p-2 hover:bg-accent text-left"
+                      >
+                        <span className="font-medium">{instrument.tradingsymbol}</span>
+                        <span className="text-sm text-muted-foreground">{instrument.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </PopoverContent>
+            </Popover>
+          </form>
         </div>
 
         <div className="flex items-center gap-4">

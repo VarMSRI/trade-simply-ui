@@ -14,6 +14,7 @@ interface WatchlistCardProps {
   onDeleteWatchlist: (watchlistId: number) => void;
   onRemoveInstrument: (item: any, watchlistId: number) => void;
   onAddInstrument: (instrument: any, watchlistId: number) => void;
+  onBulkAddInstruments: (watchlistId: number) => void;
   searchInstruments: (query: string) => Promise<void>;
   searchResults: any[];
   isSearching: boolean;
@@ -26,6 +27,7 @@ const WatchlistCard: React.FC<WatchlistCardProps> = ({
   onDeleteWatchlist,
   onRemoveInstrument,
   onAddInstrument,
+  onBulkAddInstruments,
   searchInstruments,
   searchResults,
   isSearching,
@@ -72,6 +74,7 @@ const WatchlistCard: React.FC<WatchlistCardProps> = ({
           onRemoveItem={onRemoveInstrument}
           watchlistId={watchlist.id}
           onAddSymbol={() => setIsAddingSymbol(true)}
+          onBulkAdd={onBulkAddInstruments}
         />
       </CardContent>
     </Card>

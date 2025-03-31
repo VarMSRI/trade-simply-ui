@@ -33,6 +33,28 @@ export const useWatchlistInstruments = (state: any, dispatch: React.Dispatch<Wat
     },
   });
 
+  // New bulk add instruments mutation
+  const bulkAddInstrumentsMutation = useMutation({
+    mutationFn: ({ watchlistId, instruments }: { watchlistId: number; instruments: AddInstrumentDTO[] }) => 
+      api.watchlist.addInstrumentsBulk(watchlistId, instruments),
+    onSuccess: async (_, variables) => {
+      // Fetch only the updated watchlist
+      const updatedWatchlist = await api.watchlist.get(variables.watchlistId);
+      
+      // Update the specific watchlist in the cache
+      queryClient.setQueryData(['watchlists'], (oldWatchlists: any) => 
+        oldWatchlists?.map((watchlist: Watchlist) => 
+          watchlist.id === variables.watchlistId ? updatedWatchlist : watchlist
+        )
+      );
+      
+      toast.success('Symbols added to watchlist successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to add symbols: ${error.message}`);
+    },
+  });
+
   // Remove instrument mutation
   const removeInstrumentMutation = useMutation({
     mutationFn: ({ watchlistId, instrumentKey }: { watchlistId: number; instrumentKey: number }) => 
@@ -96,6 +118,53 @@ export const useWatchlistInstruments = (state: any, dispatch: React.Dispatch<Wat
     });
   };
 
+  const handleBulkAddInstruments = (watchlistId: number) => {
+    // Here we'll use top 5 popular instruments as a demo
+    // In a real app, you'd present a selection UI
+    const popularSymbols = [
+      { tradingsymbol: 'RELIANCE', name: 'Reliance Industries Ltd.', instrument_token: 256265 },
+      { tradingsymbol: 'TCS', name: 'Tata Consultancy Services Ltd.', instrument_token: 60193 },
+      { tradingsymbol: 'HDFCBANK', name: 'HDFC Bank Ltd.', instrument_token: 738561 },
+      { tradingsymbol: 'INFY', name: 'Infosys Ltd.', instrument_token: 895745 },
+      { tradingsymbol: 'ICICIBANK', name: 'ICICI Bank Ltd.', instrument_token: 3861249 }
+    ];
+
+    const watchlists = queryClient.getQueryData<Watchlist[]>(['watchlists']) || [];
+    const watchlist = watchlists.find(w => w.id === watchlistId);
+    
+    if (!watchlist) {
+      toast.error('Watchlist not found');
+      return;
+    }
+    
+    if (watchlist.items.length + popularSymbols.length > 10) {
+      toast.error('Adding these symbols would exceed the maximum limit of 10 symbols per watchlist');
+      return;
+    }
+
+    // Filter out symbols that are already in the watchlist
+    const existingSymbols = new Set(watchlist.items.map(item => item.trading_symbol));
+    const newSymbols = popularSymbols.filter(
+      symbol => !existingSymbols.has(symbol.tradingsymbol)
+    );
+    
+    if (newSymbols.length === 0) {
+      toast.info('All popular symbols are already in your watchlist');
+      return;
+    }
+    
+    const instruments: AddInstrumentDTO[] = newSymbols.map(symbol => ({
+      instrument_key: symbol.instrument_token,
+      trading_symbol: symbol.tradingsymbol,
+      instrument_name: symbol.name
+    }));
+    
+    bulkAddInstrumentsMutation.mutate({
+      watchlistId: watchlist.id,
+      instruments
+    });
+  };
+
   const handleRemoveInstrument = (item: WatchlistItem, watchlistId: number) => {
     removeInstrumentMutation.mutate({
       watchlistId,
@@ -107,6 +176,7 @@ export const useWatchlistInstruments = (state: any, dispatch: React.Dispatch<Wat
     // Handlers
     handleSearch,
     handleAddInstrument,
+    handleBulkAddInstruments,
     handleRemoveInstrument,
   };
 };
