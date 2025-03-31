@@ -1,15 +1,7 @@
 
 import { useState, useEffect } from 'react';
-
-interface Instrument {
-  token: number;
-  symbol: string;
-  name: string;
-  exchange: string;
-  lastPrice?: number;
-  change?: number;
-  changePercent?: number;
-}
+import instrumentService from '@/services/instrumentService';
+import { Instrument } from '@/types/watchlist';
 
 export function useSearchInstruments(query: string) {
   const [results, setResults] = useState<Instrument[]>([]);
@@ -27,29 +19,16 @@ export function useSearchInstruments(query: string) {
       setError(null);
 
       try {
-        // In a real app, this would be an API call
-        // For now, we're using the CSV file loaded in the public folder
-        const instruments = (window as any).instruments || [];
+        // Use the instrumentService to search for instruments
+        const matchedInstruments = await instrumentService.searchInstruments(query);
         
-        if (!instruments || instruments.length === 0) {
-          console.log('No instruments data available');
-          setResults([]);
-          setIsLoading(false);
-          return;
-        }
-        
-        const filtered = instruments.filter(
-          (instrument: any) =>
-            (instrument.symbol && instrument.symbol.toLowerCase().includes(query.toLowerCase())) ||
-            (instrument.name && instrument.name.toLowerCase().includes(query.toLowerCase()))
-        ).slice(0, 10); // Limit to 10 results
-        
-        const mappedResults = filtered.map((instrument: any) => ({
-          token: instrument.token,
-          symbol: instrument.symbol,
-          name: instrument.name,
-          exchange: instrument.exchange,
-          lastPrice: instrument.lastPrice,
+        // Map the results to match the expected structure
+        const mappedResults = matchedInstruments.map(instrument => ({
+          token: instrument.instrument_token,
+          symbol: instrument.tradingsymbol,
+          name: instrument.name || '',
+          exchange: instrument.exchange || 'NSE',
+          lastPrice: instrument.last_price,
           change: instrument.change,
           changePercent: instrument.changePercent,
         }));
