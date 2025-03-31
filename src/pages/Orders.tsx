@@ -33,7 +33,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
-import { useMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Orders: React.FC = () => {
   const [status, setStatus] = useState<OrderStatus | undefined>(undefined);
@@ -43,7 +43,7 @@ const Orders: React.FC = () => {
   const [pageSize] = useState(10);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   
-  const { isMobile } = useMobile();
+  const isMobile = useIsMobile();
   
   const { 
     orders, 
