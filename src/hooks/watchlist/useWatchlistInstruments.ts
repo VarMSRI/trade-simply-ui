@@ -78,7 +78,7 @@ export const useWatchlistInstruments = (state: any, dispatch: React.Dispatch<Wat
   });
 
   const handleSearch = async (query: string = state.searchQuery) => {
-    if (!query.trim()) return;
+    if (!query.trim() || query.trim().length < 2) return;
     
     dispatch({ type: 'SET_IS_SEARCHING', payload: true });
     try {
@@ -118,16 +118,24 @@ export const useWatchlistInstruments = (state: any, dispatch: React.Dispatch<Wat
     });
   };
 
-  const handleBulkAddInstruments = (watchlistId: number) => {
-    // Here we'll use top 5 popular instruments as a demo
-    // In a real app, you'd present a selection UI
-    const popularSymbols = [
-      { tradingsymbol: 'RELIANCE', name: 'Reliance Industries Ltd.', instrument_token: 256265 },
-      { tradingsymbol: 'TCS', name: 'Tata Consultancy Services Ltd.', instrument_token: 60193 },
-      { tradingsymbol: 'HDFCBANK', name: 'HDFC Bank Ltd.', instrument_token: 738561 },
-      { tradingsymbol: 'INFY', name: 'Infosys Ltd.', instrument_token: 895745 },
-      { tradingsymbol: 'ICICIBANK', name: 'ICICI Bank Ltd.', instrument_token: 3861249 }
-    ];
+  const handleBulkAddInstruments = (watchlistId: number, instruments?: AddInstrumentDTO[]) => {
+    // If instruments are provided, use them; otherwise, use default popular symbols
+    if (!instruments) {
+      // Here we'll use top 5 popular instruments as a demo
+      const popularSymbols = [
+        { tradingsymbol: 'RELIANCE', name: 'Reliance Industries Ltd.', instrument_token: 256265 },
+        { tradingsymbol: 'TCS', name: 'Tata Consultancy Services Ltd.', instrument_token: 60193 },
+        { tradingsymbol: 'HDFCBANK', name: 'HDFC Bank Ltd.', instrument_token: 738561 },
+        { tradingsymbol: 'INFY', name: 'Infosys Ltd.', instrument_token: 895745 },
+        { tradingsymbol: 'ICICIBANK', name: 'ICICI Bank Ltd.', instrument_token: 3861249 }
+      ];
+      
+      instruments = popularSymbols.map(symbol => ({
+        instrument_key: symbol.instrument_token,
+        trading_symbol: symbol.tradingsymbol,
+        instrument_name: symbol.name
+      }));
+    }
 
     const watchlists = queryClient.getQueryData<Watchlist[]>(['watchlists']) || [];
     const watchlist = watchlists.find(w => w.id === watchlistId);
@@ -137,31 +145,25 @@ export const useWatchlistInstruments = (state: any, dispatch: React.Dispatch<Wat
       return;
     }
     
-    if (watchlist.items.length + popularSymbols.length > 10) {
+    if (watchlist.items.length + instruments.length > 10) {
       toast.error('Adding these symbols would exceed the maximum limit of 10 symbols per watchlist');
       return;
     }
 
     // Filter out symbols that are already in the watchlist
     const existingSymbols = new Set(watchlist.items.map(item => item.trading_symbol));
-    const newSymbols = popularSymbols.filter(
-      symbol => !existingSymbols.has(symbol.tradingsymbol)
+    const newInstruments = instruments.filter(
+      instrument => !existingSymbols.has(instrument.trading_symbol)
     );
     
-    if (newSymbols.length === 0) {
-      toast.info('All popular symbols are already in your watchlist');
+    if (newInstruments.length === 0) {
+      toast.info('All selected symbols are already in your watchlist');
       return;
     }
     
-    const instruments: AddInstrumentDTO[] = newSymbols.map(symbol => ({
-      instrument_key: symbol.instrument_token,
-      trading_symbol: symbol.tradingsymbol,
-      instrument_name: symbol.name
-    }));
-    
     bulkAddInstrumentsMutation.mutate({
       watchlistId: watchlist.id,
-      instruments
+      instruments: newInstruments
     });
   };
 

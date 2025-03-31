@@ -54,16 +54,27 @@ const BulkAddSymbolDialog: React.FC<BulkAddSymbolDialogProps> = ({
     }
   }, [watchlistId, watchlists]);
   
-  const handleSearch = () => {
-    if (!searchQuery.trim()) return;
-    searchInstruments(searchQuery);
-  };
-  
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    }
-  };
+  // Dynamic search as user types
+  useEffect(() => {
+    const fetchResults = async () => {
+      if (searchQuery.trim().length < 2) return;
+      
+      try {
+        await searchInstruments(searchQuery);
+      } catch (error) {
+        console.error('Error searching instruments:', error);
+      }
+    };
+    
+    // Add debounce to avoid too many API calls
+    const debounceTimer = setTimeout(() => {
+      if (searchQuery.trim()) {
+        fetchResults();
+      }
+    }, 300);
+    
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery, searchInstruments]);
   
   const handleCheckboxChange = (instrument: Instrument, checked: boolean) => {
     if (checked) {
@@ -129,12 +140,8 @@ const BulkAddSymbolDialog: React.FC<BulkAddSymbolDialogProps> = ({
                   placeholder="Search symbol or company name"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={handleKeyDown}
                 />
               </div>
-              <Button type="submit" size="sm" className="px-3" onClick={handleSearch}>
-                {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-              </Button>
             </div>
             
             {currentWatchlist && (
@@ -144,7 +151,11 @@ const BulkAddSymbolDialog: React.FC<BulkAddSymbolDialogProps> = ({
             )}
             
             <div className="max-h-72 overflow-y-auto">
-              {searchResults.length > 0 ? (
+              {isSearching ? (
+                <div className="flex justify-center p-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : searchResults.length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -180,8 +191,10 @@ const BulkAddSymbolDialog: React.FC<BulkAddSymbolDialogProps> = ({
                     })}
                   </TableBody>
                 </Table>
-              ) : searchQuery && !isSearching ? (
+              ) : searchQuery.trim().length >= 2 && !isSearching ? (
                 <p className="text-sm text-center py-4 text-muted-foreground">No results found</p>
+              ) : searchQuery.trim().length > 0 && searchQuery.trim().length < 2 ? (
+                <p className="text-sm text-center py-4 text-muted-foreground">Type at least 2 characters to search</p>
               ) : null}
             </div>
             

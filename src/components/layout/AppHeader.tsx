@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,22 +42,36 @@ const AppHeader: React.FC = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchQuery.trim()) return;
+  // Debounce search as user types
+  useEffect(() => {
+    const fetchResults = async () => {
+      if (searchQuery.trim().length < 2) {
+        setSearchResults([]);
+        return;
+      }
+      
+      setIsSearching(true);
+      setIsSearchOpen(true);
+      
+      try {
+        const results = await instrumentService.searchInstruments(searchQuery);
+        setSearchResults(results);
+      } catch (error) {
+        console.error('Error searching instruments:', error);
+      } finally {
+        setIsSearching(false);
+      }
+    };
 
-    setIsSearching(true);
-    setIsSearchOpen(true);
+    // Add debounce to avoid too many API calls
+    const debounceTimer = setTimeout(() => {
+      if (searchQuery.trim()) {
+        fetchResults();
+      }
+    }, 300);
 
-    try {
-      const results = await instrumentService.searchInstruments(searchQuery);
-      setSearchResults(results);
-    } catch (error) {
-      console.error('Error searching instruments:', error);
-    } finally {
-      setIsSearching(false);
-    }
-  };
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery]);
 
   const handleSelectInstrument = (instrument: Instrument) => {
     setIsSearchOpen(false);
@@ -71,6 +85,7 @@ const AppHeader: React.FC = () => {
     setSearchQuery(e.target.value);
     if (!e.target.value.trim()) {
       setSearchResults([]);
+      setIsSearchOpen(false);
     }
   };
 
@@ -84,7 +99,7 @@ const AppHeader: React.FC = () => {
         </div>
         
         <div className="hidden md:flex items-center relative w-80">
-          <form onSubmit={handleSearch} className="w-full relative">
+          <div className="w-full relative">
             <Popover open={isSearchOpen && searchResults.length > 0} onOpenChange={setIsSearchOpen}>
               <PopoverTrigger asChild>
                 <div className="relative w-full">
@@ -117,7 +132,7 @@ const AppHeader: React.FC = () => {
                 ) : null}
               </PopoverContent>
             </Popover>
-          </form>
+          </div>
         </div>
 
         <div className="flex items-center gap-4">

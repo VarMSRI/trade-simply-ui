@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -43,21 +43,32 @@ const AddSymbolDialog: React.FC<AddSymbolDialogProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   
-  const handleSearch = () => {
-    if (!searchQuery.trim()) return;
-    searchInstruments(searchQuery);
-  };
+  // Search as user types
+  useEffect(() => {
+    const fetchResults = async () => {
+      if (searchQuery.trim().length < 2) return;
+      
+      try {
+        await searchInstruments(searchQuery);
+      } catch (error) {
+        console.error('Error searching instruments:', error);
+      }
+    };
+    
+    // Add debounce to avoid too many API calls
+    const debounceTimer = setTimeout(() => {
+      if (searchQuery.trim()) {
+        fetchResults();
+      }
+    }, 300);
+    
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery, searchInstruments]);
   
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
     if (!open) {
       setSearchQuery('');
-    }
-  };
-  
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSearch();
     }
   };
   
@@ -83,12 +94,8 @@ const AddSymbolDialog: React.FC<AddSymbolDialogProps> = ({
               placeholder="Search symbol or company name"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={handleKeyDown}
             />
           </div>
-          <Button type="submit" size="sm" className="px-3" onClick={handleSearch}>
-            {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-          </Button>
         </div>
         
         <div className="max-h-72 overflow-y-auto">
@@ -114,7 +121,11 @@ const AddSymbolDialog: React.FC<AddSymbolDialogProps> = ({
             </div>
           ) : null}
           
-          {searchResults.length > 0 ? (
+          {isSearching ? (
+            <div className="flex justify-center p-4">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : searchResults.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -143,7 +154,7 @@ const AddSymbolDialog: React.FC<AddSymbolDialogProps> = ({
                 ))}
               </TableBody>
             </Table>
-          ) : searchQuery && !isSearching ? (
+          ) : searchQuery.trim() && !isSearching ? (
             <p className="text-sm text-center py-4 text-muted-foreground">No results found</p>
           ) : null}
         </div>
