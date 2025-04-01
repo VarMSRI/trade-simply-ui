@@ -10,7 +10,9 @@ import {
   User,
   Sun,
   Moon,
-  LogOut 
+  LogOut,
+  LineChart,
+  PlusCircle
 } from 'lucide-react';
 import { 
   DropdownMenu,
@@ -26,6 +28,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { toast } from 'sonner';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import instrumentService from '@/services/instrumentService';
@@ -73,12 +76,31 @@ const AppHeader: React.FC = () => {
     return () => clearTimeout(debounceTimer);
   }, [searchQuery]);
 
-  const handleSelectInstrument = (instrument: Instrument) => {
+  const handleTradeInstrument = (instrument: Instrument) => {
     setIsSearchOpen(false);
     setSearchQuery('');
     
     // Navigate to trading page with the selected instrument
     navigate(`/trading?symbol=${instrument.tradingsymbol}`);
+    toast.success(`Ready to trade ${instrument.tradingsymbol}`);
+  };
+  
+  const handleAddToWatchlist = (instrument: Instrument) => {
+    setIsSearchOpen(false);
+    setSearchQuery('');
+    
+    // Navigate to watchlist page
+    navigate('/watchlist', { 
+      state: { 
+        addInstrument: {
+          instrument_key: instrument.instrument_token,
+          trading_symbol: instrument.tradingsymbol,
+          instrument_name: instrument.name || instrument.tradingsymbol
+        }
+      }
+    });
+    
+    toast.success(`${instrument.tradingsymbol} ready to be added to watchlist`);
   };
 
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -119,14 +141,35 @@ const AppHeader: React.FC = () => {
                 ) : searchResults.length > 0 ? (
                   <div className="max-h-[300px] overflow-auto">
                     {searchResults.map((instrument) => (
-                      <button
+                      <div
                         key={instrument.instrument_token}
-                        onClick={() => handleSelectInstrument(instrument)}
-                        className="w-full flex flex-col items-start p-2 hover:bg-accent text-left"
+                        className="w-full p-2 hover:bg-accent border-b border-border last:border-none"
                       >
-                        <span className="font-medium">{instrument.tradingsymbol}</span>
-                        <span className="text-sm text-muted-foreground">{instrument.name}</span>
-                      </button>
+                        <div className="flex flex-col w-full">
+                          <span className="font-medium">{instrument.tradingsymbol}</span>
+                          <span className="text-sm text-muted-foreground">{instrument.name}</span>
+                        </div>
+                        <div className="flex mt-1 gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="w-full"
+                            onClick={() => handleTradeInstrument(instrument)}
+                          >
+                            <LineChart className="h-3 w-3 mr-1" />
+                            Trade
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="w-full"
+                            onClick={() => handleAddToWatchlist(instrument)}
+                          >
+                            <PlusCircle className="h-3 w-3 mr-1" />
+                            Add to Watchlist
+                          </Button>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 ) : null}

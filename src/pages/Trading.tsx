@@ -1,10 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useSearchInstruments } from '@/hooks/useSearchInstruments';
 import SearchBar from '@/components/trading/SearchBar';
 import SearchResults from '@/components/trading/SearchResults';
 import StockDetail from '@/components/trading/StockDetail';
+import instrumentService from '@/services/instrumentService';
 
 interface AssetInfo {
   symbol: string;
@@ -23,12 +25,39 @@ const Trading: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAsset, setSelectedAsset] = useState<AssetInfo | null>(null);
   const debouncedSearch = useDebounce(searchQuery, 300);
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
 
   const { 
     results: searchResults, 
     isLoading: isSearching, 
     error: searchError 
   } = useSearchInstruments(debouncedSearch);
+
+  // Handle URL parameter for symbol
+  useEffect(() => {
+    const symbolFromUrl = searchParams.get('symbol');
+    if (symbolFromUrl && !selectedAsset) {
+      loadInstrumentFromSymbol(symbolFromUrl);
+    }
+  }, [searchParams]);
+
+  const loadInstrumentFromSymbol = async (symbol: string) => {
+    try {
+      const results = await instrumentService.searchInstruments(symbol);
+      if (results.length > 0) {
+        const instrument = results[0];
+        handleAssetSelect({
+          token: instrument.instrument_token,
+          symbol: instrument.tradingsymbol,
+          name: instrument.name || instrument.tradingsymbol,
+          lastPrice: instrument.last_price || 500
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load instrument from URL:', error);
+    }
+  };
 
   const handleAssetSelect = (result: any) => {
     // In a real app, you would fetch additional data for the selected asset
