@@ -1,16 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/providers/ThemeProvider';
-
-// TradingView widget interface
-declare global {
-  interface Window {
-    TradingView: {
-      widget: new (config: any) => any;
-    };
-  }
-}
 
 interface StockChartProps {
   symbol?: string;
@@ -23,124 +15,54 @@ const StockChart: React.FC<StockChartProps> = ({
   name = "Reliance Industries Ltd.", 
   data 
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const widgetRef = useRef<any>(null);
-  const [currentInterval, setCurrentInterval] = useState<string>('D');
+  const [currentTimeframe, setCurrentTimeframe] = useState<string>('1M');
   const timeframes = ['1D', '5D', '1M', '3M', '6M', 'YTD', '1Y', '5Y', 'All'];
   const { theme } = useTheme();
 
-  useEffect(() => {
-    // Load TradingView widget script if it hasn't been loaded yet
-    if (!document.getElementById('tradingview-widget-script')) {
-      const script = document.createElement('script');
-      script.id = 'tradingview-widget-script';
-      script.src = 'https://s3.tradingview.com/tv.js';
-      script.async = true;
-      script.onload = () => createWidget();
-      document.head.appendChild(script);
-    } else if (window.TradingView) {
-      // If script is already loaded, create widget directly
-      createWidget();
-    }
-
-    return () => {
-      // Clean up widget when component unmounts
-      if (widgetRef.current) {
-        // TradingView doesn't provide a clean destroy method, so we just clear the container
-        if (containerRef.current) {
-          containerRef.current.innerHTML = '';
-        }
-      }
-    };
-  }, [symbol, theme, currentInterval]);
-
-  const createWidget = () => {
-    if (!containerRef.current || !window.TradingView) return;
-    
-    // Clear previous widget
-    containerRef.current.innerHTML = '';
-
-    // Format the symbol properly based on pattern
-    // If it already contains a colon (like NSE:RELIANCE), use it as is
-    // Otherwise, add NSE: prefix for Indian stocks
+  // Format the symbol for Google Finance
+  const getFormattedSymbol = () => {
     let formattedSymbol = symbol || "RELIANCE";
-    
-    // Don't modify symbols that already contain an exchange prefix
+    // For Indian stocks (NSE)
     if (!formattedSymbol.includes(':')) {
-      // Remove any special characters except alphanumeric and dots
-      formattedSymbol = formattedSymbol.replace(/[^a-zA-Z0-9.]/g, '');
       formattedSymbol = `NSE:${formattedSymbol}`;
     }
+    return formattedSymbol.replace(/[^a-zA-Z0-9:\.]/g, '');
+  };
 
-    console.log("Creating TradingView widget with symbol:", formattedSymbol);
+  // Map timeframes to Google Finance periods
+  const getChartPeriod = () => {
+    switch (currentTimeframe) {
+      case '1D': return '1d';
+      case '5D': return '5d';
+      case '1M': return '1m';
+      case '3M': return '3m';
+      case '6M': return '6m';
+      case 'YTD': return 'ytd';
+      case '1Y': return '1y';
+      case '5Y': return '5y';
+      case 'All': return 'max';
+      default: return '1m';
+    }
+  };
 
-    widgetRef.current = new window.TradingView.widget({
-      width: '100%',
-      height: 400,
-      symbol: formattedSymbol,
-      interval: currentInterval,
-      timezone: 'Asia/Kolkata',
-      theme: theme === 'dark' ? 'dark' : 'light',
-      style: '1', // '1' for line style
-      locale: 'in',
-      toolbar_bg: theme === 'dark' ? '#222222' : '#f1f3f6',
-      enable_publishing: false,
-      allow_symbol_change: true,
-      container_id: containerRef.current.id,
-      hide_side_toolbar: false,
-      backgroundColor: theme === 'dark' ? '#222222' : '#ffffff',
-      gridColor: theme === 'dark' ? '#333333' : '#e0e0e0',
-      studies_overrides: {
-        "volume.volume.color.0": theme === 'dark' ? "#FF3A30" : "#FF3A30",
-        "volume.volume.color.1": theme === 'dark' ? "#4BB543" : "#4BB543",
-      },
-      overrides: {
-        "paneProperties.background": theme === 'dark' ? "#222222" : "#ffffff",
-        "paneProperties.vertGridProperties.color": theme === 'dark' ? "#333333" : "#e0e0e0",
-        "paneProperties.horzGridProperties.color": theme === 'dark' ? "#333333" : "#e0e0e0",
-        "symbolWatermarkProperties.transparency": 90,
-        "scalesProperties.textColor": theme === 'dark' ? "#AAA" : "#333",
-      },
-      // Adding supported exchanges for Indian market
-      supported_resolutions: ["1", "5", "15", "30", "60", "D", "W", "M"],
-      supported_exchanges: ["NSE", "BSE"],
-      disabled_features: ["use_localstorage_for_settings"],
-      enabled_features: ["save_chart_properties_to_local_storage"]
-    });
+  // Generate Google Finance chart URL
+  const getChartUrl = () => {
+    const formattedSymbol = getFormattedSymbol();
+    const period = getChartPeriod();
+    const darkMode = theme === 'dark' ? '&tz=dark' : '';
+    
+    return `https://www.gstatic.com/finance/chart/finance_${theme === 'dark' ? 'dark' : 'light'}_${period}.svg?cid=${formattedSymbol}${darkMode}`;
+  };
+
+  // Generate Google Finance URL for iframe backup
+  const getGoogleFinanceUrl = () => {
+    const formattedSymbol = getFormattedSymbol();
+    return `https://www.google.com/finance/quote/${formattedSymbol}?embed=true`;
   };
 
   // Handle timeframe changes
   const handleTimeframeChange = (timeframe: string) => {
-    let interval = 'D'; // Default interval
-    
-    switch (timeframe) {
-      case '1D':
-        interval = '30'; // 30 minutes for intraday
-        break;
-      case '5D':
-        interval = '60'; // 1 hour for 5-day view
-        break;
-      case '1M':
-        interval = 'D'; // Daily for 1 month
-        break;
-      case '3M':
-      case '6M':
-        interval = 'W'; // Weekly for 3-6 months
-        break;
-      case 'YTD':
-      case '1Y':
-        interval = 'W'; // Weekly for YTD/1Y
-        break;
-      case '5Y':
-      case 'All':
-        interval = 'M'; // Monthly for long term
-        break;
-      default:
-        interval = 'D'; // Default to daily
-    }
-    
-    // Update the interval state
-    setCurrentInterval(interval);
+    setCurrentTimeframe(timeframe);
   };
 
   return (
@@ -153,7 +75,7 @@ const StockChart: React.FC<StockChartProps> = ({
           {timeframes.map((timeframe) => (
             <Button 
               key={timeframe} 
-              variant="ghost" 
+              variant={timeframe === currentTimeframe ? "default" : "ghost"}
               size="sm"
               onClick={() => handleTimeframeChange(timeframe)}
             >
@@ -163,11 +85,31 @@ const StockChart: React.FC<StockChartProps> = ({
         </div>
       </CardHeader>
       <CardContent className="h-[400px]">
-        <div 
-          id={`tradingview-widget-${symbol?.replace(/[^a-zA-Z0-9]/g, '-')}`} 
-          ref={containerRef} 
-          className="h-full w-full"
-        />
+        <div className="h-full w-full overflow-hidden relative bg-card">
+          {/* Primary Google Finance Chart Embed */}
+          <iframe
+            src={getGoogleFinanceUrl()}
+            width="100%"
+            height="100%"
+            frameBorder="0"
+            scrolling="no"
+            className="absolute inset-0"
+            title={`${symbol} stock chart`}
+            loading="lazy"
+          />
+        </div>
+        
+        {/* Fallback display in case iframe doesn't load properly */}
+        <div className="hidden">
+          <img 
+            src={getChartUrl()} 
+            alt={`${symbol} stock chart`} 
+            className="w-full h-full object-contain" 
+          />
+          <p className="text-center text-sm text-muted-foreground mt-2">
+            Data from Google Finance
+          </p>
+        </div>
       </CardContent>
     </Card>
   );
