@@ -2,12 +2,22 @@
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from './use-toast';
-import api from '@/services/api';
+import orderService from '@/services/orderService';
 import { Order, OrderRequest, OrdersFilter } from '@/types/order';
 
 export const useOrders = (filters?: OrdersFilter) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Generate a unique query key based on filters
+  const queryKey = ['orders'];
+  if (filters) {
+    if (filters.status) queryKey.push(filters.status);
+    if (filters.startDate) queryKey.push(filters.startDate);
+    if (filters.endDate) queryKey.push(filters.endDate);
+    if (filters.page !== undefined) queryKey.push(`page-${filters.page}`);
+    if (filters.size !== undefined) queryKey.push(`size-${filters.size}`);
+  }
   
   // Fetch orders
   const {
@@ -16,15 +26,15 @@ export const useOrders = (filters?: OrdersFilter) => {
     error: ordersError,
     refetch: refetchOrders,
   } = useQuery({
-    queryKey: ['orders', filters],
-    queryFn: () => api.orders.getOrders(filters),
+    queryKey,
+    queryFn: () => orderService.getOrders(filters),
     staleTime: 1000 * 60, // 1 minute
     refetchOnWindowFocus: true,
   });
 
   // Create order
   const { mutate: createOrder, isPending: isCreatingOrder } = useMutation({
-    mutationFn: (orderRequest: OrderRequest) => api.orders.createOrder(orderRequest),
+    mutationFn: (orderRequest: OrderRequest) => orderService.createOrder(orderRequest),
     onSuccess: () => {
       toast({
         title: 'Order Placed',
@@ -44,7 +54,7 @@ export const useOrders = (filters?: OrdersFilter) => {
 
   // Cancel order
   const { mutate: cancelOrder, isPending: isCancellingOrder } = useMutation({
-    mutationFn: (orderId: string) => api.orders.cancelOrder(orderId),
+    mutationFn: (orderId: string) => orderService.cancelOrder(orderId),
     onSuccess: () => {
       toast({
         title: 'Order Cancelled',
@@ -65,7 +75,7 @@ export const useOrders = (filters?: OrdersFilter) => {
   const getOrderById = useCallback(
     async (orderId: string): Promise<Order> => {
       try {
-        return await api.orders.getOrder(orderId);
+        return await orderService.getOrder(orderId);
       } catch (error) {
         console.error('Error fetching order:', error);
         throw error;

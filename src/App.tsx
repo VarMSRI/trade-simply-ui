@@ -11,6 +11,7 @@ import Dashboard from "@/pages/Dashboard";
 import Trading from "@/pages/Trading";
 import Portfolio from "@/pages/Portfolio";
 import Watchlist from "@/pages/Watchlist";
+import Orders from "@/pages/Orders";
 import Login from "@/pages/Login";
 import VerifyOtp from "@/pages/VerifyOtp";
 import CompleteProfile from "@/pages/CompleteProfile";
@@ -92,6 +93,16 @@ const App = () => (
                   <ProtectedRoute>
                     <AppLayout>
                       <Watchlist />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route 
+                path="/orders" 
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Orders />
                     </AppLayout>
                   </ProtectedRoute>
                 }

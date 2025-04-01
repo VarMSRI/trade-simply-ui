@@ -11,8 +11,10 @@ import {
 } from '@/components/ui/card';
 import { useIsMobile } from '@/hooks/use-mobile';
 import OrdersTable from '@/components/orders/OrdersTable';
+import TodaysOrdersTable from '@/components/orders/TodaysOrdersTable';
 import ActiveFilters from '@/components/orders/ActiveFilters';
 import FilterDialog from '@/components/orders/FilterDialog';
+import { useToast } from '@/hooks/use-toast';
 
 const Orders: React.FC = () => {
   const [status, setStatus] = useState<OrderStatus | undefined>(undefined);
@@ -21,9 +23,28 @@ const Orders: React.FC = () => {
   const [page, setPage] = useState(0);
   const [pageSize] = useState(10);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const { toast } = useToast();
   
   const isMobile = useIsMobile();
   
+  // Get today's orders - no filter
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date();
+  todayEnd.setHours(23, 59, 59, 999);
+  
+  const { 
+    orders: todaysOrders, 
+    isLoading: isTodaysOrdersLoading, 
+    error: todaysOrdersError,
+    cancelOrder: cancelTodayOrder,
+    isCancellingOrder: isCancellingTodayOrder
+  } = useOrders({
+    startDate: todayStart.toISOString(),
+    endDate: todayEnd.toISOString()
+  });
+  
+  // Get filtered orders based on user filters
   const { 
     orders, 
     pagination,
@@ -49,7 +70,10 @@ const Orders: React.FC = () => {
   const handleViewDetails = (order: Order) => {
     setSelectedOrder(order);
     // Here you would typically open a modal or navigate to a details page
-    console.log("View details for order:", order);
+    toast({
+      title: "Order Details",
+      description: `Viewing details for order ${order.id.slice(0, 8)}...`,
+    });
   };
   
   return (
@@ -61,6 +85,19 @@ const Orders: React.FC = () => {
         </p>
       </div>
       
+      {/* Today's Orders Section */}
+      <div className="mb-8">
+        <TodaysOrdersTable
+          orders={todaysOrders}
+          isLoading={isTodaysOrdersLoading}
+          error={todaysOrdersError}
+          onViewDetails={handleViewDetails}
+          onCancelOrder={cancelTodayOrder}
+          isCancellingOrder={isCancellingTodayOrder}
+        />
+      </div>
+      
+      {/* All Orders Section with Filters */}
       <div className="flex flex-col space-y-6">
         <div className="flex justify-between items-center">
           <ActiveFilters 
@@ -86,9 +123,9 @@ const Orders: React.FC = () => {
         
         <Card>
           <CardHeader>
-            <CardTitle>Your Orders</CardTitle>
+            <CardTitle>All Orders</CardTitle>
             <CardDescription>
-              View all your orders and their current status
+              View your order history with advanced filtering
             </CardDescription>
           </CardHeader>
           <CardContent>
