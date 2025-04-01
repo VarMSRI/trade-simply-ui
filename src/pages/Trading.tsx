@@ -2,11 +2,9 @@
 import React, { useState } from 'react';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useSearchInstruments } from '@/hooks/useSearchInstruments';
-import { useOrders } from '@/hooks/useOrders';
 import SearchBar from '@/components/trading/SearchBar';
 import SearchResults from '@/components/trading/SearchResults';
 import StockDetail from '@/components/trading/StockDetail';
-import OrdersTable from '@/components/trading/OrdersTable';
 
 interface AssetInfo {
   symbol: string;
@@ -25,13 +23,6 @@ const Trading: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAsset, setSelectedAsset] = useState<AssetInfo | null>(null);
   const debouncedSearch = useDebounce(searchQuery, 300);
-
-  // Fetch today's orders
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const { orders, isLoading: isLoadingOrders, error: ordersError } = useOrders({
-    startDate: today.toISOString(),
-  });
 
   const { 
     results: searchResults, 
@@ -84,13 +75,6 @@ const Trading: React.FC = () => {
         
         {/* Stock Detail */}
         {selectedAsset && <StockDetail selectedAsset={selectedAsset} />}
-
-        {/* Orders Table */}
-        <OrdersTable 
-          orders={orders} 
-          isLoading={isLoadingOrders} 
-          error={ordersError}
-        />
       </div>
     </>
   );

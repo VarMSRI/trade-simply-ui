@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { Loader2 } from 'lucide-react';
@@ -19,17 +20,17 @@ interface OrdersTableProps {
   orders: Order[];
   isLoading: boolean;
   error: Error | null;
-  pagination: {
+  pagination?: {
     totalPages: number;
     totalElements: number;
     currentPage: number;
     pageSize: number;
   };
-  onPageChange: (page: number) => void;
-  page: number;
-  onViewDetails: (order: Order) => void;
-  onCancelOrder: (orderId: string) => void;
-  isCancellingOrder: boolean;
+  onPageChange?: (page: number) => void;
+  page?: number;
+  onViewDetails?: (order: Order) => void;
+  onCancelOrder?: (orderId: string) => void;
+  isCancellingOrder?: boolean;
 }
 
 const OrdersTable: React.FC<OrdersTableProps> = ({
@@ -91,8 +92,15 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     );
   }
 
-  if (orders.length === 0) {
-    return <p className="text-center py-8 text-muted-foreground">No orders found.</p>;
+  if (!orders || orders.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+        <div className="text-muted-foreground mb-2 text-lg">No orders found</div>
+        <p className="text-muted-foreground max-w-md">
+          You haven't placed any orders yet. When you place orders, they will appear here.
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -107,7 +115,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
             <TableHead>Price</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Created</TableHead>
-            <TableHead>Actions</TableHead>
+            {onViewDetails || onCancelOrder ? <TableHead>Actions</TableHead> : null}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -122,27 +130,31 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
               <TableCell title={format(new Date(order.createdAt), 'PPpp')}>
                 {formatDistanceToNow(new Date(order.createdAt), { addSuffix: true })}
               </TableCell>
-              <TableCell>
-                <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => onViewDetails(order)}
-                  >
-                    View
-                  </Button>
-                  {order.status === 'PENDING' && (
-                    <Button 
-                      variant="destructive" 
-                      size="sm" 
-                      onClick={() => onCancelOrder(order.id)}
-                      disabled={isCancellingOrder}
-                    >
-                      Cancel
-                    </Button>
-                  )}
-                </div>
-              </TableCell>
+              {(onViewDetails || onCancelOrder) && (
+                <TableCell>
+                  <div className="flex gap-2">
+                    {onViewDetails && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => onViewDetails(order)}
+                      >
+                        View
+                      </Button>
+                    )}
+                    {onCancelOrder && order.status === 'PENDING' && (
+                      <Button 
+                        variant="destructive" 
+                        size="sm" 
+                        onClick={() => onCancelOrder(order.id)}
+                        disabled={isCancellingOrder}
+                      >
+                        Cancel
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
+              )}
             </TableRow>
           ))}
         </TableBody>
