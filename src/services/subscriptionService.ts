@@ -37,7 +37,15 @@ const subscriptionService = {
         },
         body: JSON.stringify({ instrument_tokens: instrumentTokens }),
       });
-      return await handleResponse(response);
+      
+      // Check if the response is OK but don't try to parse JSON
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to update subscriptions');
+      }
+      
+      // Return success message
+      return 'Subscription updated successfully';
     } catch (error) {
       console.error('Error updating subscriptions:', error);
       throw error;

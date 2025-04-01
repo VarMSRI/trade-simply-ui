@@ -24,6 +24,23 @@ export const useWatchlistInstruments = (state: any, dispatch: React.Dispatch<Wat
         )
       );
       
+      // Also update subscriptions to include this new instrument token
+      try {
+        // Get current subscriptions
+        const subscriptions = await api.subscriptions.getSubscriptions();
+        const subscribedTokens = new Set(subscriptions.instrument_tokens);
+        
+        // If the instrument is not already subscribed, add it
+        if (!subscribedTokens.has(variables.instrumentData.instrument_key)) {
+          const allTokens = [...Array.from(subscribedTokens), variables.instrumentData.instrument_key];
+          await api.subscriptions.updateSubscriptions(allTokens);
+          console.log('Added instrument to market data subscriptions:', variables.instrumentData.trading_symbol);
+        }
+      } catch (error) {
+        console.error('Error updating subscriptions after adding instrument:', error);
+        // We don't throw here to prevent affecting the UI flow
+      }
+      
       dispatch({ type: 'SET_ADDING_SYMBOL', payload: false });
       dispatch({ type: 'RESET_SEARCH' });
       toast.success('Symbol added to watchlist successfully');
@@ -47,6 +64,28 @@ export const useWatchlistInstruments = (state: any, dispatch: React.Dispatch<Wat
           watchlist.id === variables.watchlistId ? updatedWatchlist : watchlist
         )
       );
+      
+      // Also update subscriptions to include these new instrument tokens
+      try {
+        // Get current subscriptions
+        const subscriptions = await api.subscriptions.getSubscriptions();
+        const subscribedTokens = new Set(subscriptions.instrument_tokens);
+        
+        // Filter new tokens that need to be subscribed
+        const newTokens = variables.instruments
+          .map(instrument => instrument.instrument_key)
+          .filter(token => !subscribedTokens.has(token));
+        
+        // If there are new tokens to subscribe
+        if (newTokens.length > 0) {
+          const allTokens = [...Array.from(subscribedTokens), ...newTokens];
+          await api.subscriptions.updateSubscriptions(allTokens);
+          console.log(`Added ${newTokens.length} instruments to market data subscriptions`);
+        }
+      } catch (error) {
+        console.error('Error updating subscriptions after bulk adding instruments:', error);
+        // We don't throw here to prevent affecting the UI flow
+      }
       
       toast.success('Symbols added to watchlist successfully');
     },
