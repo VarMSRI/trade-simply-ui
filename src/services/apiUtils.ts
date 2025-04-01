@@ -28,4 +28,28 @@ export const handleResponse = async (response: Response) => {
   }
 };
 
+// Extract user ID from JWT token
+export const getUserIdFromToken = (): string | null => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) return null;
+    
+    // Extract the payload part of the JWT token
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      window.atob(base64)
+        .split('')
+        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+
+    const payload = JSON.parse(jsonPayload);
+    return payload.sub || payload.user_id || null;
+  } catch (error) {
+    console.error('Error extracting user ID from token:', error);
+    return null;
+  }
+};
+
 export { BASE_URL };
