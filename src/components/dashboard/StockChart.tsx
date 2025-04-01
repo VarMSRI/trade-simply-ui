@@ -40,7 +40,7 @@ const StockChart: React.FC<StockChartProps> = ({
     
     // For Indian stocks (NSE)
     if (!formattedSymbol.includes(':')) {
-      formattedSymbol = `NSE:${formattedSymbol}`;
+      formattedSymbol = `${formattedSymbol}:NSE`;
     }
     
     return formattedSymbol.replace(/[^a-zA-Z0-9:\.]/g, '');
