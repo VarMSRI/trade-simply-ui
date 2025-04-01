@@ -6,7 +6,6 @@ import { useTheme } from '@/providers/ThemeProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Loader2 } from 'lucide-react';
-import { getJson } from 'serpapi';
 
 interface StockChartProps {
   symbol?: string;
@@ -62,7 +61,7 @@ const StockChart: React.FC<StockChartProps> = ({
     }
   };
 
-  // Fetch stock data from SerpAPI
+  // Fetch stock data directly from SerpAPI
   useEffect(() => {
     const fetchStockData = async () => {
       setIsLoading(true);
@@ -72,14 +71,21 @@ const StockChart: React.FC<StockChartProps> = ({
         const formattedSymbol = getFormattedSymbol();
         const period = getChartPeriod();
         
-        const params = {
-          engine: "google_finance",
+        // Use URLSearchParams for proper query parameter formatting
+        const params = new URLSearchParams({
+          engine: 'google_finance',
           q: formattedSymbol,
           period: period,
           api_key: API_KEY
-        };
+        });
         
-        const data = await getJson(params);
+        const response = await fetch(`https://serpapi.com/search.json?${params.toString()}`);
+        
+        if (!response.ok) {
+          throw new Error(`API Error: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
         
         // Process data for the chart
         if (data.finance_chart_data && data.finance_chart_data.length > 0) {
