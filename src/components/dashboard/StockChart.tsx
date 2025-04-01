@@ -6,6 +6,7 @@ import { useTheme } from '@/providers/ThemeProvider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Loader2 } from 'lucide-react';
+import { getJson } from 'serpapi';
 
 interface StockChartProps {
   symbol?: string;
@@ -71,15 +72,14 @@ const StockChart: React.FC<StockChartProps> = ({
         const formattedSymbol = getFormattedSymbol();
         const period = getChartPeriod();
         
-        const url = `https://serpapi.com/search.json?engine=google_finance&q=${formattedSymbol}&period=${period}&api_key=${API_KEY}`;
+        const params = {
+          engine: "google_finance",
+          q: formattedSymbol,
+          period: period,
+          api_key: API_KEY
+        };
         
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch data: ${response.status}`);
-        }
-        
-        const data = await response.json();
+        const data = await getJson(params);
         
         // Process data for the chart
         if (data.finance_chart_data && data.finance_chart_data.length > 0) {
@@ -95,8 +95,6 @@ const StockChart: React.FC<StockChartProps> = ({
       } catch (err) {
         console.error('Error fetching stock data:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch stock data');
-        
-        // Fallback to Google Finance iframe
         setChartData([]);
       } finally {
         setIsLoading(false);
@@ -109,12 +107,6 @@ const StockChart: React.FC<StockChartProps> = ({
   // Handle timeframe changes
   const handleTimeframeChange = (timeframe: string) => {
     setCurrentTimeframe(timeframe);
-  };
-
-  // Generate Google Finance URL for iframe backup
-  const getGoogleFinanceUrl = () => {
-    const formattedSymbol = getFormattedSymbol();
-    return `https://www.google.com/finance/quote/${formattedSymbol}?embed=true`;
   };
 
   return (
@@ -144,21 +136,9 @@ const StockChart: React.FC<StockChartProps> = ({
             <span className="ml-2">Loading chart data...</span>
           </div>
         ) : error ? (
-          <div className="h-full w-full overflow-hidden relative bg-card">
-            {/* Fallback to Google Finance Embed when API fails */}
-            <iframe
-              src={getGoogleFinanceUrl()}
-              width="100%"
-              height="100%"
-              frameBorder="0"
-              scrolling="no"
-              className="absolute inset-0"
-              title={`${symbol} stock chart`}
-              loading="lazy"
-            />
-            <div className="absolute bottom-2 right-2 bg-background/80 p-1 text-xs rounded">
-              Fallback view - API error
-            </div>
+          <div className="h-full w-full flex flex-col justify-center items-center">
+            <div className="text-muted-foreground mb-2">Failed to load chart data</div>
+            <div className="text-sm text-muted-foreground">{error}</div>
           </div>
         ) : chartData.length > 0 ? (
           <ResponsiveContainer width="100%" height="100%">
@@ -197,18 +177,9 @@ const StockChart: React.FC<StockChartProps> = ({
             </LineChart>
           </ResponsiveContainer>
         ) : (
-          <div className="h-full w-full overflow-hidden relative bg-card">
-            {/* Fallback to Google Finance Embed when no data */}
-            <iframe
-              src={getGoogleFinanceUrl()}
-              width="100%"
-              height="100%"
-              frameBorder="0"
-              scrolling="no"
-              className="absolute inset-0"
-              title={`${symbol} stock chart`}
-              loading="lazy"
-            />
+          <div className="h-full w-full flex flex-col justify-center items-center">
+            <div className="text-muted-foreground mb-2">No chart data available</div>
+            <div className="text-sm text-muted-foreground">Try a different timeframe or symbol</div>
           </div>
         )}
       </CardContent>

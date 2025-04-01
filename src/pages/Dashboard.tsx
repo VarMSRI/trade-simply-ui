@@ -1,7 +1,6 @@
 
 import React from 'react';
 import PortfolioSummary from '@/components/dashboard/PortfolioSummary';
-import StockChart from '@/components/dashboard/StockChart';
 import PortfolioHoldings from '@/components/dashboard/PortfolioHoldings';
 import DashboardWatchlist from '@/components/dashboard/DashboardWatchlist';
 import OrderForm from '@/components/trading/OrderForm';
@@ -20,8 +19,7 @@ const Dashboard: React.FC = () => {
       <div className="space-y-6">
         <PortfolioSummary />
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <StockChart />
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
           <OrderForm />
         </div>
 
