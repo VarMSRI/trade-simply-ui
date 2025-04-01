@@ -4,12 +4,10 @@ import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import {
   BarChart3,
-  History,
   Home,
   LineChart,
   ListOrdered,
   PieChart,
-  Settings,
   Star,
 } from 'lucide-react';
 
@@ -47,12 +45,6 @@ const AppSidebar: React.FC = () => {
     { to: "/portfolio", icon: <PieChart className="h-4 w-4" />, label: "Portfolio" },
     { to: "/watchlist", icon: <Star className="h-4 w-4" />, label: "Watchlist" },
     { to: "/orders", icon: <ListOrdered className="h-4 w-4" />, label: "Orders" },
-    { to: "/history", icon: <History className="h-4 w-4" />, label: "History" },
-    { to: "/analytics", icon: <BarChart3 className="h-4 w-4" />, label: "Analytics" },
-  ];
-
-  const secondaryNavLinks = [
-    { to: "/settings", icon: <Settings className="h-4 w-4" />, label: "Settings" },
   ];
 
   return (
@@ -74,19 +66,6 @@ const AppSidebar: React.FC = () => {
             />
           ))}
         </nav>
-        <div className="mt-auto px-2 py-2">
-          <nav className="grid gap-1">
-            {secondaryNavLinks.map((link) => (
-              <NavLink
-                key={link.to}
-                to={link.to}
-                icon={link.icon}
-                label={link.label}
-                active={currentPath === link.to}
-              />
-            ))}
-          </nav>
-        </div>
       </div>
     </aside>
   );
