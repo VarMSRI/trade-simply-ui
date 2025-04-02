@@ -105,7 +105,19 @@ const StockDetail: React.FC<StockDetailProps> = ({ selectedAsset }) => {
               <BuyOrderForm 
                 symbol={selectedAsset.symbol}
                 instrumentToken={selectedAsset.instrumentToken}
-                currentPrice={assetWithLiveData.price}
+                quantity="1"
+                setQuantity={() => {}}
+                orderType="MARKET"
+                setOrderType={() => {}}
+                limitPrice={assetWithLiveData.price.toFixed(2)}
+                setLimitPrice={() => {}}
+                stopLossPrice=""
+                setStopLossPrice={() => {}}
+                targetPrice=""
+                setTargetPrice={() => {}}
+                estimatedCost={assetWithLiveData.price}
+                isCreatingOrder={false}
+                createOrder={() => {}}
                 name={selectedAsset.name}
               />
             </TabsContent>
@@ -114,7 +126,19 @@ const StockDetail: React.FC<StockDetailProps> = ({ selectedAsset }) => {
               <SellOrderForm 
                 symbol={selectedAsset.symbol}
                 instrumentToken={selectedAsset.instrumentToken}
-                currentPrice={assetWithLiveData.price}
+                quantity="1"
+                setQuantity={() => {}}
+                orderType="MARKET"
+                setOrderType={() => {}}
+                limitPrice={assetWithLiveData.price.toFixed(2)}
+                setLimitPrice={() => {}}
+                stopLossPrice=""
+                setStopLossPrice={() => {}}
+                targetPrice=""
+                setTargetPrice={() => {}}
+                estimatedCost={assetWithLiveData.price}
+                isCreatingOrder={false}
+                createOrder={() => {}}
                 name={selectedAsset.name}
               />
             </TabsContent>

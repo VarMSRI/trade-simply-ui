@@ -3,13 +3,13 @@ import React from 'react';
 import { toast } from 'sonner';
 import { Settings, Trash, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { WatchlistItemData } from '@/types/watchlist';
+import { WatchlistItem as WatchlistItemType } from '@/types/watchlist';
 import { useNavigate } from 'react-router-dom';
 import { useMarketData } from '@/hooks/useMarketData';
 
 interface WatchlistItemProps {
-  item: WatchlistItemData;
-  onDelete: (item: WatchlistItemData) => void;
+  item: WatchlistItemType;
+  onDelete: (item: WatchlistItemType) => void;
 }
 
 const WatchlistItem: React.FC<WatchlistItemProps> = ({ item, onDelete }) => {
@@ -17,9 +17,9 @@ const WatchlistItem: React.FC<WatchlistItemProps> = ({ item, onDelete }) => {
   const { data: marketData } = useMarketData(item.instrument_key);
 
   // Use market data if available, otherwise use the static data
-  const lastPrice = marketData?.lastPrice || item.last_price;
+  const lastPrice = marketData?.lastPrice || item.lastPrice;
   const priceChange = marketData?.change || item.change;
-  const priceChangePercent = marketData?.changePercent || item.change_percent;
+  const priceChangePercent = marketData?.changePercent || item.changePercent;
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();

@@ -77,7 +77,7 @@ const WatchlistItemsTable: React.FC<WatchlistItemsTableProps> = ({
             <WatchlistItem 
               key={item.id}
               item={item}
-              onRemove={(item) => onRemoveItem(item, watchlistId)}
+              onDelete={(item) => onRemoveItem(item, watchlistId)}
             />
           ))}
         </TableBody>

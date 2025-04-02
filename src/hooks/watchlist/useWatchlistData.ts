@@ -12,7 +12,7 @@ export const useWatchlistData = () => {
     queryKey: ['watchlists'],
     queryFn: async (): Promise<Watchlist[]> => {
       try {
-        const data = await api.watchlist.getWatchlists();
+        const data = await api.watchlist.getAll();
         
         // Sync subscriptions with watchlist instruments
         if (data && data.length > 0) {
