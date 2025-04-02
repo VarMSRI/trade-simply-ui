@@ -118,7 +118,7 @@ const StockDetail: React.FC<StockDetailProps> = ({ selectedAsset }) => {
                 estimatedCost={assetWithLiveData.price}
                 isCreatingOrder={false}
                 createOrder={() => {}}
-                name={selectedAsset.name}
+                /* Removing the name prop since it's not in the BuyOrderFormProps interface */
               />
             </TabsContent>
             
@@ -139,7 +139,7 @@ const StockDetail: React.FC<StockDetailProps> = ({ selectedAsset }) => {
                 estimatedCost={assetWithLiveData.price}
                 isCreatingOrder={false}
                 createOrder={() => {}}
-                name={selectedAsset.name}
+                /* Removing the name prop since it's not in the SellOrderFormProps interface */
               />
             </TabsContent>
           </CardContent>
