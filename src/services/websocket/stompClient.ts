@@ -1,25 +1,23 @@
 
 import { Client, IMessage } from '@stomp/stompjs';
-import { toast } from "sonner";
-import { getUserIdFromToken } from "./apiUtils";
+import { getUserIdFromToken } from "../apiUtils";
+import { WS_CONFIG, MESSAGE_TYPES } from './config';
+import { toast } from 'sonner';
 import { MarketDataUpdate, WebSocketConnectionStatus } from '@/types/market';
 
-class WebSocketService {
+export class StompWebSocketClient {
   private stompClient: Client | null = null;
   private isConnected: boolean = false;
   private reconnectTimer: number | null = null;
   private reconnectAttempts: number = 0;
-  private maxReconnectAttempts: number = 10;
-  private reconnectInterval: number = 3000;
   private listeners: Map<string, Set<(data: any) => void>> = new Map();
   private subscriptions: Set<string> = new Set();
-  private url: string = "wss://app.intuitifi.com/ws";
   
   constructor() {
     // Initialize listeners map for different message types
-    this.listeners.set("marketData", new Set());
-    this.listeners.set("orderUpdate", new Set());
-    this.listeners.set("connectionStatus", new Set());
+    this.listeners.set(MESSAGE_TYPES.MARKET_DATA, new Set());
+    this.listeners.set(MESSAGE_TYPES.ORDER_UPDATE, new Set());
+    this.listeners.set(MESSAGE_TYPES.CONNECTION_STATUS, new Set());
   }
 
   public connect(): void {
@@ -36,7 +34,7 @@ class WebSocketService {
 
       // Create a new STOMP client
       this.stompClient = new Client({
-        brokerURL: this.url,
+        brokerURL: WS_CONFIG.URL,
         connectHeaders: {
           Authorization: `Bearer ${token}`
         },
@@ -49,48 +47,10 @@ class WebSocketService {
       });
 
       // Configure connection event handlers
-      this.stompClient.onConnect = (frame) => {
-        console.log("STOMP connection established");
-        this.isConnected = true;
-        this.reconnectAttempts = 0;
-        this.notifyListeners("connectionStatus", { status: "connected" });
-        
-        // Resubscribe to all previous subscriptions
-        this.resubscribeAll();
-      };
-
-      this.stompClient.onStompError = (frame) => {
-        console.error('STOMP protocol error:', frame);
-        this.notifyListeners("connectionStatus", { 
-          status: "error", 
-          error: frame 
-        });
-      };
-
-      this.stompClient.onWebSocketError = (event) => {
-        console.error('WebSocket error:', event);
-        this.notifyListeners("connectionStatus", { 
-          status: "error", 
-          error: event 
-        });
-      };
-
-      this.stompClient.onWebSocketClose = (event) => {
-        this.isConnected = false;
-        this.notifyListeners("connectionStatus", { 
-          status: "disconnected", 
-          code: event.code,
-          reason: event.reason 
-        });
-
-        if (this.reconnectAttempts < this.maxReconnectAttempts) {
-          console.log(`WebSocket connection closed. Attempting to reconnect in ${this.reconnectInterval / 1000}s`);
-          this.reconnect();
-        } else if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-          console.error("Maximum reconnection attempts reached");
-          toast.error("Failed to connect to market data stream. Please refresh the page.");
-        }
-      };
+      this.stompClient.onConnect = this.handleConnect.bind(this);
+      this.stompClient.onStompError = this.handleStompError.bind(this);
+      this.stompClient.onWebSocketError = this.handleWebSocketError.bind(this);
+      this.stompClient.onWebSocketClose = this.handleWebSocketClose.bind(this);
 
       // Activate the connection
       this.stompClient.activate();
@@ -100,15 +60,58 @@ class WebSocketService {
     }
   }
 
+  private handleConnect(frame: any): void {
+    console.log("STOMP connection established");
+    this.isConnected = true;
+    this.reconnectAttempts = 0;
+    this.notifyListeners(MESSAGE_TYPES.CONNECTION_STATUS, { status: "connected" });
+    
+    // Resubscribe to all previous subscriptions
+    this.resubscribeAll();
+  }
+
+  private handleStompError(frame: any): void {
+    console.error('STOMP protocol error:', frame);
+    this.notifyListeners(MESSAGE_TYPES.CONNECTION_STATUS, { 
+      status: "error", 
+      error: frame 
+    });
+  }
+
+  private handleWebSocketError(event: any): void {
+    console.error('WebSocket error:', event);
+    this.notifyListeners(MESSAGE_TYPES.CONNECTION_STATUS, { 
+      status: "error", 
+      error: event 
+    });
+  }
+
+  private handleWebSocketClose(event: CloseEvent): void {
+    this.isConnected = false;
+    this.notifyListeners(MESSAGE_TYPES.CONNECTION_STATUS, { 
+      status: "disconnected", 
+      code: event.code,
+      reason: event.reason 
+    });
+
+    if (this.reconnectAttempts < WS_CONFIG.RECONNECT.MAX_ATTEMPTS) {
+      console.log(`WebSocket connection closed. Attempting to reconnect in ${WS_CONFIG.RECONNECT.INTERVAL / 1000}s`);
+      this.reconnect();
+    } else if (this.reconnectAttempts >= WS_CONFIG.RECONNECT.MAX_ATTEMPTS) {
+      console.error("Maximum reconnection attempts reached");
+      toast.error("Failed to connect to market data stream. Please refresh the page.");
+    }
+  }
+
   private handleMessage(destination: string, message: IMessage): void {
     try {
       const payload = JSON.parse(message.body);
       
       // Extract the message type from the destination
       if (destination.includes('/topic/market')) {
-        this.notifyListeners("marketData", payload);
+        this.notifyListeners(MESSAGE_TYPES.MARKET_DATA, payload);
       } else if (destination.includes('/topic/orders')) {
-        this.notifyListeners("orderUpdate", payload);
+        this.notifyListeners(MESSAGE_TYPES.ORDER_UPDATE, payload);
       }
     } catch (error) {
       console.error("Error handling STOMP message:", error);
@@ -129,9 +132,9 @@ class WebSocketService {
 
     this.reconnectAttempts++;
     this.reconnectTimer = window.setTimeout(() => {
-      console.log(`Reconnection attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
+      console.log(`Reconnection attempt ${this.reconnectAttempts}/${WS_CONFIG.RECONNECT.MAX_ATTEMPTS}`);
       this.connect();
-    }, this.reconnectInterval);
+    }, WS_CONFIG.RECONNECT.INTERVAL);
   }
 
   public disconnect(): void {
@@ -210,31 +213,22 @@ class WebSocketService {
     }
   }
 
-  public subscribeToMarketData(callback: (data: MarketDataUpdate) => void): () => void {
-    const marketDataListeners = this.listeners.get("marketData");
-    if (marketDataListeners) {
-      marketDataListeners.add(callback);
+  public addListener(type: string, callback: (data: any) => void): () => void {
+    const typeListeners = this.listeners.get(type);
+    if (typeListeners) {
+      typeListeners.add(callback);
     }
 
     // Return unsubscribe function
     return () => {
-      if (marketDataListeners) {
-        marketDataListeners.delete(callback);
+      if (typeListeners) {
+        typeListeners.delete(callback);
       }
     };
   }
 
-  public subscribeToConnectionStatus(callback: (data: WebSocketConnectionStatus) => void): () => void {
-    const connectionListeners = this.listeners.get("connectionStatus");
-    if (connectionListeners) {
-      connectionListeners.add(callback);
-    }
-
-    return () => {
-      if (connectionListeners) {
-        connectionListeners.delete(callback);
-      }
-    };
+  public isActive(): boolean {
+    return this.isConnected;
   }
 
   private resubscribeAll(): void {
@@ -254,13 +248,4 @@ class WebSocketService {
       }
     });
   }
-
-  public isSocketConnected(): boolean {
-    return this.isConnected;
-  }
 }
-
-// Create a singleton instance
-const websocketService = new WebSocketService();
-
-export default websocketService;

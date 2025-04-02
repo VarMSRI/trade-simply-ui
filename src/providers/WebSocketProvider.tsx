@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
-import websocketService from '@/services/websocketService';
+import websocketService from '@/services/websocket';
 import { useAuth } from '@/providers/AuthProvider';
 import { toast } from 'sonner';
 import { MarketDataUpdate, WebSocketConnectionStatus } from '@/types/market';
