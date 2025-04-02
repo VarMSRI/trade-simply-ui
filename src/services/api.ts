@@ -2,7 +2,7 @@
 import watchlistService from './watchlistService';
 import orderService from './orderService';
 import subscriptionService from './subscriptionService';
-import websocketService from './websocketService';
+import websocketService from './websocket';
 import { getAuthHeaders } from './apiUtils';
 
 const api = {
