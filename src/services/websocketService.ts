@@ -1,14 +1,11 @@
 
+import { Client, IMessage } from '@stomp/stompjs';
 import { toast } from "sonner";
 import { getUserIdFromToken } from "./apiUtils";
-
-interface WebSocketMessage {
-  type: string;
-  data: any;
-}
+import { MarketDataUpdate, WebSocketConnectionStatus } from '@/types/market';
 
 class WebSocketService {
-  private socket: WebSocket | null = null;
+  private stompClient: Client | null = null;
   private isConnected: boolean = false;
   private reconnectTimer: number | null = null;
   private reconnectAttempts: number = 0;
@@ -26,8 +23,8 @@ class WebSocketService {
   }
 
   public connect(): void {
-    if (this.socket) {
-      this.disconnect();
+    if (this.stompClient && this.stompClient.connected) {
+      return;
     }
 
     try {
@@ -37,10 +34,23 @@ class WebSocketService {
         return;
       }
 
-      this.socket = new WebSocket(this.url);
+      // Create a new STOMP client
+      this.stompClient = new Client({
+        brokerURL: this.url,
+        connectHeaders: {
+          Authorization: `Bearer ${token}`
+        },
+        debug: function (str) {
+          console.log('STOMP: ' + str);
+        },
+        reconnectDelay: 5000,
+        heartbeatIncoming: 4000,
+        heartbeatOutgoing: 4000
+      });
 
-      this.socket.onopen = () => {
-        console.log("WebSocket connection established");
+      // Configure connection event handlers
+      this.stompClient.onConnect = (frame) => {
+        console.log("STOMP connection established");
         this.isConnected = true;
         this.reconnectAttempts = 0;
         this.notifyListeners("connectionStatus", { status: "connected" });
@@ -49,16 +59,23 @@ class WebSocketService {
         this.resubscribeAll();
       };
 
-      this.socket.onmessage = (event) => {
-        try {
-          const message = JSON.parse(event.data) as WebSocketMessage;
-          this.handleMessage(message);
-        } catch (error) {
-          console.error("Error parsing WebSocket message:", error);
-        }
+      this.stompClient.onStompError = (frame) => {
+        console.error('STOMP protocol error:', frame);
+        this.notifyListeners("connectionStatus", { 
+          status: "error", 
+          error: frame 
+        });
       };
 
-      this.socket.onclose = (event) => {
+      this.stompClient.onWebSocketError = (event) => {
+        console.error('WebSocket error:', event);
+        this.notifyListeners("connectionStatus", { 
+          status: "error", 
+          error: event 
+        });
+      };
+
+      this.stompClient.onWebSocketClose = (event) => {
         this.isConnected = false;
         this.notifyListeners("connectionStatus", { 
           status: "disconnected", 
@@ -66,7 +83,7 @@ class WebSocketService {
           reason: event.reason 
         });
 
-        if (!event.wasClean && this.reconnectAttempts < this.maxReconnectAttempts) {
+        if (this.reconnectAttempts < this.maxReconnectAttempts) {
           console.log(`WebSocket connection closed. Attempting to reconnect in ${this.reconnectInterval / 1000}s`);
           this.reconnect();
         } else if (this.reconnectAttempts >= this.maxReconnectAttempts) {
@@ -75,22 +92,26 @@ class WebSocketService {
         }
       };
 
-      this.socket.onerror = (error) => {
-        console.error("WebSocket error:", error);
-        this.notifyListeners("connectionStatus", { status: "error", error });
-      };
+      // Activate the connection
+      this.stompClient.activate();
 
     } catch (error) {
-      console.error("Error establishing WebSocket connection:", error);
+      console.error("Error establishing STOMP connection:", error);
     }
   }
 
-  private handleMessage(message: WebSocketMessage): void {
-    // Determine message type and notify appropriate listeners
-    if (message.type === "market") {
-      this.notifyListeners("marketData", message.data);
-    } else if (message.type === "order") {
-      this.notifyListeners("orderUpdate", message.data);
+  private handleMessage(destination: string, message: IMessage): void {
+    try {
+      const payload = JSON.parse(message.body);
+      
+      // Extract the message type from the destination
+      if (destination.includes('/topic/market')) {
+        this.notifyListeners("marketData", payload);
+      } else if (destination.includes('/topic/orders')) {
+        this.notifyListeners("orderUpdate", payload);
+      }
+    } catch (error) {
+      console.error("Error handling STOMP message:", error);
     }
   }
 
@@ -114,9 +135,8 @@ class WebSocketService {
   }
 
   public disconnect(): void {
-    if (this.socket) {
-      this.socket.close();
-      this.socket = null;
+    if (this.stompClient && this.stompClient.connected) {
+      this.stompClient.deactivate();
     }
 
     if (this.reconnectTimer !== null) {
@@ -129,8 +149,8 @@ class WebSocketService {
   }
 
   public subscribe(instrumentToken: number): boolean {
-    if (!this.isConnected || !this.socket) {
-      console.warn("Cannot subscribe: WebSocket is not connected");
+    if (!this.isConnected || !this.stompClient || !this.stompClient.connected) {
+      console.warn("Cannot subscribe: STOMP client is not connected");
       return false;
     }
 
@@ -148,10 +168,10 @@ class WebSocketService {
     }
 
     try {
-      this.socket.send(JSON.stringify({
-        type: "SUBSCRIBE",
-        topic
-      }));
+      // Subscribe to STOMP destination
+      const subscription = this.stompClient.subscribe(topic, (message) => {
+        this.handleMessage(topic, message);
+      });
       
       this.subscriptions.add(topic);
       console.log(`Subscribed to ${topic}`);
@@ -163,7 +183,7 @@ class WebSocketService {
   }
 
   public unsubscribe(instrumentToken: number): boolean {
-    if (!this.isConnected || !this.socket) {
+    if (!this.isConnected || !this.stompClient || !this.stompClient.connected) {
       return false;
     }
 
@@ -179,10 +199,8 @@ class WebSocketService {
     }
 
     try {
-      this.socket.send(JSON.stringify({
-        type: "UNSUBSCRIBE",
-        topic
-      }));
+      // Find and unsubscribe from the specific subscription
+      this.stompClient.unsubscribe(topic);
       
       this.subscriptions.delete(topic);
       return true;
@@ -192,7 +210,7 @@ class WebSocketService {
     }
   }
 
-  public subscribeToMarketData(callback: (data: any) => void): () => void {
+  public subscribeToMarketData(callback: (data: MarketDataUpdate) => void): () => void {
     const marketDataListeners = this.listeners.get("marketData");
     if (marketDataListeners) {
       marketDataListeners.add(callback);
@@ -206,7 +224,7 @@ class WebSocketService {
     };
   }
 
-  public subscribeToConnectionStatus(callback: (data: any) => void): () => void {
+  public subscribeToConnectionStatus(callback: (data: WebSocketConnectionStatus) => void): () => void {
     const connectionListeners = this.listeners.get("connectionStatus");
     if (connectionListeners) {
       connectionListeners.add(callback);
@@ -220,22 +238,16 @@ class WebSocketService {
   }
 
   private resubscribeAll(): void {
-    if (!this.isConnected || !this.socket) {
-      return;
-    }
-
-    const userId = getUserIdFromToken();
-    if (!userId) {
+    if (!this.isConnected || !this.stompClient || !this.stompClient.connected) {
       return;
     }
 
     // Re-establish all previous subscriptions
     this.subscriptions.forEach(topic => {
       try {
-        this.socket?.send(JSON.stringify({
-          type: "SUBSCRIBE",
-          topic
-        }));
+        this.stompClient?.subscribe(topic, (message) => {
+          this.handleMessage(topic, message);
+        });
         console.log(`Resubscribed to ${topic}`);
       } catch (error) {
         console.error(`Error resubscribing to ${topic}:`, error);

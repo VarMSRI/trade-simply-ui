@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useState, useMemo } from '
 import websocketService from '@/services/websocketService';
 import { useAuth } from '@/providers/AuthProvider';
 import { toast } from 'sonner';
+import { MarketDataUpdate, WebSocketConnectionStatus } from '@/types/market';
 
 interface WebSocketContextValue {
   isConnected: boolean;
@@ -10,15 +11,15 @@ interface WebSocketContextValue {
   disconnect: () => void;
   subscribe: (instrumentToken: number) => boolean;
   unsubscribe: (instrumentToken: number) => boolean;
-  subscribeToMarketData: (callback: (data: any) => void) => () => void;
-  marketData: Record<number, any>;
+  subscribeToMarketData: (callback: (data: MarketDataUpdate) => void) => () => void;
+  marketData: Record<number, MarketDataUpdate>;
 }
 
 const WebSocketContext = createContext<WebSocketContextValue | undefined>(undefined);
 
 export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isConnected, setIsConnected] = useState<boolean>(false);
-  const [marketData, setMarketData] = useState<Record<number, any>>({});
+  const [marketData, setMarketData] = useState<Record<number, MarketDataUpdate>>({});
   const { isAuthenticated } = useAuth();
 
   useEffect(() => {
@@ -27,7 +28,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       websocketService.connect();
 
       // Subscribe to connection status updates
-      const unsubscribe = websocketService.subscribeToConnectionStatus((status) => {
+      const unsubscribe = websocketService.subscribeToConnectionStatus((status: WebSocketConnectionStatus) => {
         setIsConnected(status.status === 'connected');
         
         if (status.status === 'error') {
@@ -36,7 +37,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       });
 
       // Subscribe to market data updates
-      const unsubscribeMarketData = websocketService.subscribeToMarketData((data) => {
+      const unsubscribeMarketData = websocketService.subscribeToMarketData((data: MarketDataUpdate) => {
         if (data && data.instrumentToken) {
           setMarketData(prev => ({
             ...prev,
@@ -60,7 +61,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     disconnect: () => websocketService.disconnect(),
     subscribe: (instrumentToken: number) => websocketService.subscribe(instrumentToken),
     unsubscribe: (instrumentToken: number) => websocketService.unsubscribe(instrumentToken),
-    subscribeToMarketData: (callback: (data: any) => void) => websocketService.subscribeToMarketData(callback),
+    subscribeToMarketData: (callback: (data: MarketDataUpdate) => void) => websocketService.subscribeToMarketData(callback),
     marketData
   }), [isConnected, marketData]);
 
