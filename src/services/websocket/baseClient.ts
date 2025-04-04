@@ -1,4 +1,10 @@
 
+// Polyfill for SockJS which uses Node.js globals
+if (typeof window !== 'undefined') {
+  // @ts-ignore
+  window.global = window;
+}
+
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { WS_CONFIG } from './config';
