@@ -1,17 +1,4 @@
 
-// This polyfill needs to be before any imports to ensure global is defined
-if (typeof window !== 'undefined') {
-  // Define global if it doesn't exist
-  if (!window.global) {
-    (window as any).global = window;
-  }
-  
-  // Additional globals that might be needed by SockJS
-  if (!(window as any).process) {
-    (window as any).process = { env: {} };
-  }
-}
-
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { WS_CONFIG } from './config';
