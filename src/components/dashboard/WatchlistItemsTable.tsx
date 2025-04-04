@@ -66,6 +66,7 @@ const WatchlistItemsTable: React.FC<WatchlistItemsTableProps> = ({
         <TableHeader>
           <TableRow>
             <TableHead>Symbol</TableHead>
+            <TableHead>Name</TableHead>
             <TableHead className="text-right">Price</TableHead>
             <TableHead className="text-right">Change</TableHead>
             <TableHead></TableHead>
@@ -76,7 +77,7 @@ const WatchlistItemsTable: React.FC<WatchlistItemsTableProps> = ({
             <WatchlistItem 
               key={item.id}
               item={item}
-              onDelete={(item) => onRemoveItem(item, watchlistId)}
+              onRemove={(item) => onRemoveItem(item, watchlistId)}
             />
           ))}
         </TableBody>

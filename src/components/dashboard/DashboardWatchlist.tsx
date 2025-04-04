@@ -59,6 +59,7 @@ const DashboardWatchlist: React.FC = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Symbol</TableHead>
+                  <TableHead>Name</TableHead>
                   <TableHead className="text-right">Price</TableHead>
                   <TableHead className="text-right">Change</TableHead>
                 </TableRow>
@@ -67,6 +68,7 @@ const DashboardWatchlist: React.FC = () => {
                 {firstWatchlist.items.slice(0, 5).map((item) => (
                   <TableRow key={item.id} className="table-row-hover cursor-pointer">
                     <TableCell className="font-medium">{item.trading_symbol}</TableCell>
+                    <TableCell>{item.instrument_name}</TableCell>
                     <TableCell className="text-right">
                       {item.lastPrice ? `₹${item.lastPrice.toFixed(2)}` : '-'}
                     </TableCell>

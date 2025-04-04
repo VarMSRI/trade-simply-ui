@@ -1,37 +1,30 @@
 
-import { useQuery } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/services/api';
 import { Watchlist } from '@/types/watchlist';
+import { useEffect } from 'react';
 import { useWatchlistSubscriptions } from './useWatchlistSubscriptions';
 
 export const useWatchlistData = () => {
+  const queryClient = useQueryClient();
   const { syncWatchlistSubscriptions } = useWatchlistSubscriptions();
-
-  const { data: watchlists, isLoading, error, refetch } = useQuery({
+  
+  // Fetch all watchlists
+  const { data: watchlists = [], isLoading, error } = useQuery({
     queryKey: ['watchlists'],
-    queryFn: async (): Promise<Watchlist[]> => {
-      try {
-        const data = await api.watchlist.getAll();
-        
-        // Sync subscriptions with watchlist instruments
-        if (data && data.length > 0) {
-          await syncWatchlistSubscriptions(data);
-        }
-        
-        return data || [];
-      } catch (error) {
-        console.error('Error fetching watchlists:', error);
-        toast.error('Failed to load watchlists');
-        throw error;
-      }
-    },
+    queryFn: api.watchlist.getAll,
   });
+
+  // When watchlists are loaded, sync subscriptions
+  useEffect(() => {
+    if (watchlists.length > 0) {
+      syncWatchlistSubscriptions(watchlists);
+    }
+  }, [watchlists]);
 
   return {
     watchlists,
     isLoading,
     error,
-    refetch
   };
 };

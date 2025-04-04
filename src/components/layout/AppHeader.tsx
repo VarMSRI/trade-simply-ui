@@ -1,121 +1,225 @@
 
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Bell, Search, Moon, Sun } from "lucide-react";
-import { useAuth } from "@/providers/AuthProvider";
-import { useTheme } from "@/providers/ThemeProvider";
-import { Button } from "@/components/ui/button";
-import {
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { 
+  Bell, 
+  Search, 
+  Settings, 
+  User,
+  Sun,
+  Moon,
+  LogOut,
+  LineChart,
+  PlusCircle
+} from 'lucide-react';
+import { 
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuGroup
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import WebSocketStatus from "@/components/common/WebSocketStatus";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { toast } from 'sonner';
+import { useTheme } from '@/providers/ThemeProvider';
+import { useAuth } from '@/providers/AuthProvider';
+import instrumentService from '@/services/instrumentService';
+import { Instrument } from '@/types/watchlist';
 
 const AppHeader: React.FC = () => {
+  const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
-  const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Instrument[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
-  const handleProfileClick = () => {
-    navigate("/profile");
+  // Debounce search as user types
+  useEffect(() => {
+    const fetchResults = async () => {
+      if (searchQuery.trim().length < 2) {
+        setSearchResults([]);
+        return;
+      }
+      
+      setIsSearching(true);
+      setIsSearchOpen(true);
+      
+      try {
+        const results = await instrumentService.searchInstruments(searchQuery);
+        setSearchResults(results);
+      } catch (error) {
+        console.error('Error searching instruments:', error);
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    // Add debounce to avoid too many API calls
+    const debounceTimer = setTimeout(() => {
+      if (searchQuery.trim()) {
+        fetchResults();
+      }
+    }, 300);
+
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery]);
+
+  const handleTradeInstrument = (instrument: Instrument) => {
+    setIsSearchOpen(false);
+    setSearchQuery('');
+    
+    // Navigate to trading page with the selected instrument
+    navigate(`/trading?symbol=${instrument.tradingsymbol}`);
+    toast.success(`Ready to trade ${instrument.tradingsymbol}`);
+  };
+  
+  const handleAddToWatchlist = (instrument: Instrument) => {
+    setIsSearchOpen(false);
+    setSearchQuery('');
+    
+    // Navigate to watchlist page
+    navigate('/watchlist', { 
+      state: { 
+        addInstrument: {
+          instrument_key: instrument.instrument_token,
+          trading_symbol: instrument.tradingsymbol,
+          instrument_name: instrument.name || instrument.tradingsymbol
+        }
+      }
+    });
+    
+    toast.success(`${instrument.tradingsymbol} ready to be added to watchlist`);
   };
 
-  const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
-  };
-
-  // Generate initials from user name or email
-  const getInitials = () => {
-    if (!user) return "U";
-
-    if (user.name) {
-      return user.name.split(" ")
-        .map(part => part[0])
-        .join("")
-        .toUpperCase()
-        .substring(0, 2);
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    if (!e.target.value.trim()) {
+      setSearchResults([]);
+      setIsSearchOpen(false);
     }
-
-    if (user.email && user.email !== "default@example.com") {
-      return user.email[0].toUpperCase();
-    }
-
-    return user.phoneNumber?.[0] || "U";
   };
 
   return (
-    <header className="h-14 border-b flex items-center px-4 md:px-6">
-      <div className="flex-1">
-        <div className="relative max-w-md">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <input
-            type="search"
-            placeholder="Search instruments..."
-            className="pl-8 h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                navigate("/trading");
-              }
-            }}
-          />
+    <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-30">
+      <div className="flex items-center justify-between h-16 px-4 md:px-6">
+        <div className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2">
+            <div className="font-bold text-2xl text-primary">Intuitifi</div>
+          </Link>
         </div>
-      </div>
-      <div className="flex items-center gap-2">
-        <WebSocketStatus className="mr-2" />
         
-        <Button
-          variant="ghost"
-          size="icon"
-          className="rounded-full"
-          onClick={toggleTheme}
-        >
-          {theme === "dark" ? (
-            <Sun className="h-5 w-5" />
-          ) : (
-            <Moon className="h-5 w-5" />
-          )}
-          <span className="sr-only">Toggle theme</span>
-        </Button>
-        
-        <Button
-          variant="ghost"
-          size="icon"
-          className="rounded-full relative"
-        >
-          <Bell className="h-5 w-5" />
-          <span className="sr-only">Notifications</span>
-          <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-primary"></span>
-        </Button>
-        
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full overflow-hidden"
-            >
-              <Avatar className="h-8 w-8">
-                <AvatarImage src="" alt={user?.name || "User"} />
-                <AvatarFallback>{getInitials()}</AvatarFallback>
-              </Avatar>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>
-              {user?.name || user?.phoneNumber || "User"}
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleProfileClick}>
-              Profile
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={logout}>Logout</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="hidden md:flex items-center relative w-80">
+          <div className="w-full relative">
+            <Popover open={isSearchOpen && searchResults.length > 0} onOpenChange={setIsSearchOpen}>
+              <PopoverTrigger asChild>
+                <div className="relative w-full">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    type="search" 
+                    placeholder="Search for stocks..." 
+                    className="w-full pl-8 bg-secondary"
+                    value={searchQuery}
+                    onChange={handleSearchInputChange}
+                  />
+                </div>
+              </PopoverTrigger>
+              <PopoverContent className="p-0 w-80" align="end">
+                {isSearching ? (
+                  <div className="p-4 text-center text-muted-foreground">Searching...</div>
+                ) : searchResults.length > 0 ? (
+                  <div className="max-h-[300px] overflow-auto">
+                    {searchResults.map((instrument) => (
+                      <div
+                        key={instrument.instrument_token}
+                        className="w-full p-2 hover:bg-accent border-b border-border last:border-none"
+                      >
+                        <div className="flex flex-col w-full">
+                          <span className="font-medium">{instrument.tradingsymbol}</span>
+                          <span className="text-sm text-muted-foreground">{instrument.name}</span>
+                        </div>
+                        <div className="flex mt-1 gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="w-full"
+                            onClick={() => handleTradeInstrument(instrument)}
+                          >
+                            <LineChart className="h-3 w-3 mr-1" />
+                            Trade
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="w-full"
+                            onClick={() => handleAddToWatchlist(instrument)}
+                          >
+                            <PlusCircle className="h-3 w-3 mr-1" />
+                            Add to Watchlist
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </PopoverContent>
+            </Popover>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="outline" 
+            size="icon"
+            onClick={toggleTheme}
+            aria-label="Toggle theme"
+          >
+            {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </Button>
+          
+          <Button variant="outline" size="icon" className="relative">
+            <Bell className="h-5 w-5" />
+            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[0.6rem] text-white">3</span>
+          </Button>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <User className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>
+                {user?.name || 'My Account'}
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate('/profile')}>
+                <User className="mr-2 h-4 w-4" />
+                <span>Profile</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Settings</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={logout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Log out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </header>
   );
