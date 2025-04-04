@@ -61,6 +61,7 @@
     "react-router-dom": "^6.26.2",
     "recharts": "^2.12.7",
     "serpapi": "^2.1.0",
+    "sockjs-client": "^1.6.1",
     "sonner": "^1.5.0",
     "stomp": "^0.1.1",
     "tailwind-merge": "^2.5.2",
