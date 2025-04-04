@@ -1,4 +1,9 @@
 
+// Add global polyfill for sockjs-client
+if (typeof window !== 'undefined' && !window.global) {
+  (window as any).global = window;
+}
+
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { WS_CONFIG } from './config';
