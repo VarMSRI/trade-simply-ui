@@ -29,98 +29,98 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
-              <Routes>
-                {/* Auth Routes */}
-                <Route 
-                  path="/login" 
-                  element={
-                    <ProtectedRoute requireAuth={false}>
-                      <Login />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route 
-                  path="/verify-otp" 
-                  element={
-                    <ProtectedRoute requireAuth={false}>
-                      <VerifyOtp />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route 
-                  path="/complete-profile" 
-                  element={
-                    <ProtectedRoute requireCompleteProfile={false}>
-                      <CompleteProfile />
-                    </ProtectedRoute>
-                  }
-                />
+            <Routes>
+              {/* Auth Routes */}
+              <Route 
+                path="/login" 
+                element={
+                  <ProtectedRoute requireAuth={false}>
+                    <Login />
+                  </ProtectedRoute>
+                }
+              />
+              <Route 
+                path="/verify-otp" 
+                element={
+                  <ProtectedRoute requireAuth={false}>
+                    <VerifyOtp />
+                  </ProtectedRoute>
+                }
+              />
+              <Route 
+                path="/complete-profile" 
+                element={
+                  <ProtectedRoute requireCompleteProfile={false}>
+                    <CompleteProfile />
+                  </ProtectedRoute>
+                }
+              />
 
-                {/* Protected App Routes */}
-                <Route 
-                  path="/" 
-                  element={
-                    <ProtectedRoute>
-                      <AppLayout>
-                        <Dashboard />
-                      </AppLayout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route 
-                  path="/trading" 
-                  element={
-                    <ProtectedRoute>
-                      <AppLayout>
-                        <Trading />
-                      </AppLayout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route 
-                  path="/portfolio" 
-                  element={
-                    <ProtectedRoute>
-                      <AppLayout>
-                        <Portfolio />
-                      </AppLayout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route 
-                  path="/watchlist" 
-                  element={
-                    <ProtectedRoute>
-                      <AppLayout>
-                        <Watchlist />
-                      </AppLayout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route 
-                  path="/orders" 
-                  element={
-                    <ProtectedRoute>
-                      <AppLayout>
-                        <Orders />
-                      </AppLayout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route 
-                  path="/profile" 
-                  element={
-                    <ProtectedRoute requireCompleteProfile={false}>
-                      <AppLayout>
-                        <Profile />
-                      </AppLayout>
-                    </ProtectedRoute>
-                  }
-                />
+              {/* Protected App Routes */}
+              <Route 
+                path="/" 
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Dashboard />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route 
+                path="/trading" 
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Trading />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route 
+                path="/portfolio" 
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Portfolio />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route 
+                path="/watchlist" 
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Watchlist />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route 
+                path="/orders" 
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Orders />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route 
+                path="/profile" 
+                element={
+                  <ProtectedRoute requireCompleteProfile={false}>
+                    <AppLayout>
+                      <Profile />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
 
-                {/* 404 Route */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              {/* 404 Route */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
