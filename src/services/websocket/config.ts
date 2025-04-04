@@ -1,6 +1,6 @@
 
 export const WS_CONFIG = {
-  URL: "wss://app.intuitifi.com/ws",
+  URL: "https://app.intuitifi.com/ws",
   RECONNECT: {
     MAX_ATTEMPTS: 10,
     INTERVAL: 3000

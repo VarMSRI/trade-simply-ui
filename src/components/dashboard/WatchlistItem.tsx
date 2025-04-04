@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { toast } from 'sonner';
-import { Settings, Trash, Eye } from 'lucide-react';
+import { Trash, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { WatchlistItem as WatchlistItemType } from '@/types/watchlist';
 import { useNavigate } from 'react-router-dom';
@@ -36,9 +36,13 @@ const WatchlistItem: React.FC<WatchlistItemProps> = ({ item, onDelete }) => {
   return (
     <tr className="hover:bg-muted/50 cursor-pointer">
       <td className="px-2 py-1">{item.trading_symbol}</td>
-      <td className="px-2 py-1">₹{lastPrice?.toFixed(2)}</td>
-      <td className={`px-2 py-1 ${priceChangeClass}`}>
-        {priceChange >= 0 ? '+' : ''}{priceChange?.toFixed(2)} ({priceChangePercent?.toFixed(2)}%)
+      <td className="px-2 py-1 text-right">₹{lastPrice?.toFixed(2) || '-'}</td>
+      <td className={`px-2 py-1 text-right ${priceChangeClass}`}>
+        {priceChange !== null ? (
+          <>
+            {priceChange >= 0 ? '+' : ''}{priceChange?.toFixed(2)} ({priceChangePercent?.toFixed(2)}%)
+          </>
+        ) : '+0.00 (0.00%)'}
       </td>
       <td className="px-2 py-1 text-right">
         <Button variant="ghost" size="icon" onClick={handleView} className="h-7 w-7">

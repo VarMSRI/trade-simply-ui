@@ -66,7 +66,6 @@ const WatchlistItemsTable: React.FC<WatchlistItemsTableProps> = ({
         <TableHeader>
           <TableRow>
             <TableHead>Symbol</TableHead>
-            <TableHead>Name</TableHead>
             <TableHead className="text-right">Price</TableHead>
             <TableHead className="text-right">Change</TableHead>
             <TableHead></TableHead>

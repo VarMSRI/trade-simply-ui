@@ -1,5 +1,6 @@
 
 import { Client, IMessage } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
 import { getUserIdFromToken } from "../apiUtils";
 import { WS_CONFIG, MESSAGE_TYPES } from './config';
 import { toast } from 'sonner';
@@ -32,9 +33,9 @@ export class StompWebSocketClient {
         return;
       }
 
-      // Create a new STOMP client
+      // Create a new STOMP client with SockJS
       this.stompClient = new Client({
-        brokerURL: WS_CONFIG.URL,
+        webSocketFactory: () => new SockJS(WS_CONFIG.URL),
         connectHeaders: {
           Authorization: `Bearer ${token}`
         },
