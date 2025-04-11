@@ -2,6 +2,23 @@
 import { TradeAlert } from '@/types/alert';
 import { BASE_URL, getAuthHeaders } from './apiUtils';
 
+// Custom EventSource interface to avoid extending the built-in one
+interface CustomEventSource {
+  url: string;
+  withCredentials: boolean;
+  readyState: number;
+  onopen: ((this: EventSource, ev: Event) => any) | null;
+  onmessage: ((this: EventSource, ev: MessageEvent) => any) | null;
+  onerror: ((this: EventSource, ev: Event) => any) | null;
+  addEventListener(type: string, listener: EventListener, options?: boolean | AddEventListenerOptions): void;
+  removeEventListener(type: string, listener: EventListener, options?: boolean | EventListenerOptions): void;
+  dispatchEvent(event: Event): boolean;
+  close(): void;
+  readonly CONNECTING: number;
+  readonly OPEN: number;
+  readonly CLOSED: number;
+}
+
 const notificationService = {
   // Returns an EventSource for SSE connection
   getTradeAlertsStream: (): EventSource => {
@@ -17,18 +34,15 @@ const notificationService = {
     
     // Create an EventSource with headers using fetch + ReadableStream
     // Since native EventSource doesn't support custom headers
-    const eventSource = new EventSourcePolyfill(url, { 
+    return new EventSourcePolyfill(url, { 
       headers,
       withCredentials: true 
-    });
-    
-    return eventSource;
+    }) as unknown as EventSource;
   }
 };
 
 // EventSource polyfill to support custom headers
-class EventSourcePolyfill implements EventSource {
-  private url: string;
+class EventSourcePolyfill implements CustomEventSource {
   private options: any;
   private eventSource: EventSource | null = null;
   private listeners: { [key: string]: EventListener[] } = {
@@ -38,9 +52,17 @@ class EventSourcePolyfill implements EventSource {
     close: []
   };
   
+  readonly CLOSED: number = 2;
+  readonly CONNECTING: number = 0;
+  readonly OPEN: number = 1;
+  
+  url: string;
+  withCredentials: boolean;
+  
   constructor(url: string, options: any) {
     this.url = url;
     this.options = options;
+    this.withCredentials = !!options.withCredentials;
     this.init();
   }
 
@@ -134,17 +156,13 @@ class EventSourcePolyfill implements EventSource {
 
   dispatchEvent(event: Event): boolean {
     const listeners = this.listeners[event.type] || [];
-    listeners.forEach(listener => {
-      if (event instanceof MessageEvent) {
-        (listener as EventListenerObject).handleEvent 
-          ? (listener as EventListenerObject).handleEvent(event) 
-          : listener(event);
-      } else {
-        (listener as EventListenerObject).handleEvent 
-          ? (listener as EventListenerObject).handleEvent(event) 
-          : listener(event);
+    for (const listener of listeners) {
+      if (typeof listener === 'function') {
+        (listener as any)(event);
+      } else if (typeof listener === 'object' && 'handleEvent' in listener) {
+        (listener as any).handleEvent(event);
       }
-    });
+    }
     return !event.defaultPrevented;
   }
 
@@ -156,31 +174,22 @@ class EventSourcePolyfill implements EventSource {
       close: []
     };
   }
-
-  // EventSource interface properties
-  readonly CLOSED: number = 2;
-  readonly CONNECTING: number = 0;
-  readonly OPEN: number = 1;
   
   get readyState(): number {
     return 1; // Always return OPEN for simplicity
   }
-  
-  get url(): string {
-    return this.url;
-  }
 
   // Event handlers
   set onopen(handler: ((this: EventSource, ev: Event) => any) | null) {
-    this.listeners.open = handler ? [handler] : [];
+    this.listeners.open = handler ? [handler as unknown as EventListener] : [];
   }
   
   set onmessage(handler: ((this: EventSource, ev: MessageEvent) => any) | null) {
-    this.listeners.message = handler ? [handler] : [];
+    this.listeners.message = handler ? [handler as unknown as EventListener] : [];
   }
   
   set onerror(handler: ((this: EventSource, ev: Event) => any) | null) {
-    this.listeners.error = handler ? [handler] : [];
+    this.listeners.error = handler ? [handler as unknown as EventListener] : [];
   }
 }
 
