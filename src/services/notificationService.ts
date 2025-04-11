@@ -13,6 +13,10 @@ const notificationService = {
       url.searchParams.append('token', token);
     }
     
+    // Add the X-Internal-Request header as a query parameter
+    // (since EventSource doesn't allow setting custom headers directly)
+    url.searchParams.append('X-Internal-Request', 'true');
+    
     return new EventSource(url.toString());
   }
 };
