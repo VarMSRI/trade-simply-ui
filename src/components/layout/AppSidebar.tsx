@@ -1,11 +1,10 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   Home, 
   BarChart3, 
   Briefcase, 
-  Star, The component that shows recommendations and watches trade
+  Star, 
   ClipboardList, 
   User, 
   BellRing
