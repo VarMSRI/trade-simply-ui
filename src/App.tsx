@@ -16,6 +16,7 @@ import Login from "@/pages/Login";
 import VerifyOtp from "@/pages/VerifyOtp";
 import CompleteProfile from "@/pages/CompleteProfile";
 import Profile from "@/pages/Profile";
+import Recommendations from "@/pages/Recommendations";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
@@ -103,6 +104,16 @@ const App = () => (
                   <ProtectedRoute>
                     <AppLayout>
                       <Orders />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route 
+                path="/recommendations" 
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Recommendations />
                     </AppLayout>
                   </ProtectedRoute>
                 }
