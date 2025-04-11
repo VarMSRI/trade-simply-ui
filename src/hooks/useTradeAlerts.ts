@@ -24,6 +24,7 @@ export const useTradeAlerts = () => {
         
         eventSource.onmessage = (event) => {
           try {
+            console.log('Received SSE message:', event.data);
             const alertData: TradeAlert = JSON.parse(event.data);
             setAlerts(prevAlerts => {
               // Check if alert already exists by security (assuming security is unique)
@@ -44,10 +45,10 @@ export const useTradeAlerts = () => {
           }
         };
         
-        eventSource.onerror = () => {
+        eventSource.onerror = (err) => {
+          console.error('SSE connection error:', err);
           setIsConnected(false);
           setError('Connection to alerts feed lost. Reconnecting...');
-          console.log('SSE connection error, reconnecting...');
           
           // Close the current connection
           eventSource?.close();
@@ -56,8 +57,8 @@ export const useTradeAlerts = () => {
           setTimeout(connectToSSE, 5000);
         };
       } catch (err) {
-        setError('Failed to connect to alerts feed');
         console.error('SSE connection setup error:', err);
+        setError('Failed to connect to alerts feed');
       }
     };
     
