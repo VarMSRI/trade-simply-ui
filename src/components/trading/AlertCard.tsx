@@ -14,8 +14,10 @@ interface AlertCardProps {
 const AlertCard: React.FC<AlertCardProps> = ({ alert }) => {
   const navigate = useNavigate();
   
+  const securityName = alert.security || alert.security_code || '';
+  
   const handleTradeClick = () => {
-    navigate(`/trading?symbol=${alert.security}`);
+    navigate(`/trading?symbol=${securityName}`);
   };
   
   // Determine event strength category based on event_score
@@ -37,7 +39,7 @@ const AlertCard: React.FC<AlertCardProps> = ({ alert }) => {
       <CardHeader className="pb-2">
         <div className="flex justify-between items-center">
           <CardTitle className="text-lg font-bold flex items-center gap-2">
-            {alert.security}
+            {securityName}
             <Badge variant="outline" className={eventStrength.className}>
               {eventStrength.label}
             </Badge>
