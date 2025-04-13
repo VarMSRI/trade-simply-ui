@@ -10,10 +10,7 @@ import {
   User,
   Sun,
   Moon,
-  LogOut,
-  LineChart,
-  PlusCircle,
-  BarChart4
+  LogOut
 } from 'lucide-react';
 import { 
   DropdownMenu,
@@ -34,20 +31,20 @@ import { useTheme } from '@/providers/ThemeProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import instrumentService from '@/services/instrumentService';
 import { Instrument } from '@/types/watchlist';
-import FundamentalsCard from '@/components/trading/FundamentalsCard';
+import FundamentalsModal from '@/components/trading/FundamentalsModal';
 import { useFundamentals } from '@/hooks/useFundamentals';
 
 const AppHeader: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Instrument[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [selectedInstrument, setSelectedInstrument] = useState<Instrument | null>(null);
+  const [showFundamentalsModal, setShowFundamentalsModal] = useState(false);
   
   const {
     fundamentals,
@@ -88,20 +85,24 @@ const AppHeader: React.FC = () => {
     return () => clearTimeout(debounceTimer);
   }, [searchQuery]);
 
-  const handleTradeInstrument = (instrument: Instrument) => {
+  const handleInstrumentSelect = async (instrument: Instrument) => {
+    setSelectedInstrument(instrument);
     setIsSearchOpen(false);
-    setSearchQuery('');
-    setSelectedInstrument(null);
-    clearFundamentals();
+    setSearchQuery(''); // Clear search
     
-    // Navigate to trading page with the selected instrument
-    navigate(`/trading?symbol=${instrument.tradingsymbol}`);
-    toast.success(`Ready to trade ${instrument.tradingsymbol}`);
+    // Open the modal
+    setShowFundamentalsModal(true);
+    
+    try {
+      await fetchFundamentals(instrument.instrument_token);
+    } catch (error) {
+      console.error('Error fetching fundamentals:', error);
+      // Error handling is managed in the modal
+    }
   };
   
   const handleAddToWatchlist = (instrument: Instrument) => {
-    setIsSearchOpen(false);
-    setSearchQuery('');
+    setShowFundamentalsModal(false);
     setSelectedInstrument(null);
     clearFundamentals();
     
@@ -118,30 +119,17 @@ const AppHeader: React.FC = () => {
     
     toast.success(`${instrument.tradingsymbol} ready to be added to watchlist`);
   };
-  
-  const handleShowFundamentals = async (instrument: Instrument) => {
-    setSelectedInstrument(instrument);
-    
-    try {
-      await fetchFundamentals(instrument.instrument_token);
-    } catch (error) {
-      console.error('Error fetching fundamentals:', error);
-      toast.error('Failed to fetch company fundamentals');
-    }
-  };
 
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
     if (!e.target.value.trim()) {
       setSearchResults([]);
       setIsSearchOpen(false);
-      setSelectedInstrument(null);
-      clearFundamentals();
     }
   };
   
-  const handleCloseSearch = () => {
-    setIsSearchOpen(false);
+  const handleCloseModal = () => {
+    setShowFundamentalsModal(false);
     setSelectedInstrument(null);
     clearFundamentals();
   };
@@ -158,7 +146,7 @@ const AppHeader: React.FC = () => {
         <div className="hidden md:flex items-center relative w-80">
           <div className="w-full relative">
             <Popover 
-              open={isSearchOpen && (searchResults.length > 0 || !!selectedInstrument)} 
+              open={isSearchOpen && searchResults.length > 0} 
               onOpenChange={setIsSearchOpen}
             >
               <PopoverTrigger asChild>
@@ -176,61 +164,27 @@ const AppHeader: React.FC = () => {
               <PopoverContent className="p-0 w-80" align="end">
                 {isSearching ? (
                   <div className="p-4 text-center text-muted-foreground">Searching...</div>
-                ) : selectedInstrument ? (
-                  <div className="p-2">
-                    <div className="flex justify-between items-center mb-2">
-                      <h4 className="font-medium">{selectedInstrument.tradingsymbol}</h4>
-                      <Button variant="ghost" size="sm" onClick={handleCloseSearch}>
-                        Back to search
-                      </Button>
-                    </div>
-                    <FundamentalsCard
-                      fundamentals={fundamentals}
-                      isLoading={isLoadingFundamentals}
-                      error={fundamentalsError}
-                    />
-                  </div>
-                ) : searchResults.length > 0 ? (
+                ) : (
                   <div className="max-h-[300px] overflow-auto">
                     {searchResults.map((instrument) => (
                       <div
                         key={instrument.instrument_token}
-                        className="w-full p-2 hover:bg-accent border-b border-border last:border-none"
+                        className="w-full p-2 hover:bg-accent border-b border-border last:border-none cursor-pointer"
+                        onClick={() => handleInstrumentSelect(instrument)}
                       >
                         <div className="flex flex-col w-full">
                           <span className="font-medium">{instrument.tradingsymbol}</span>
                           <span className="text-sm text-muted-foreground">{instrument.name}</span>
-                        </div>
-                        <div className="flex mt-1 gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => handleShowFundamentals(instrument)}
-                          >
-                            <BarChart4 className="h-3 w-3 mr-1" />
-                            Fundamentals
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => handleTradeInstrument(instrument)}
-                          >
-                            <LineChart className="h-3 w-3 mr-1" />
-                            Trade
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => handleAddToWatchlist(instrument)}
-                          >
-                            <PlusCircle className="h-3 w-3 mr-1" />
-                            Watchlist
-                          </Button>
+                          {instrument.last_price && (
+                            <span className="text-sm font-medium text-green-600 dark:text-green-400">
+                              ₹{instrument.last_price}
+                            </span>
+                          )}
                         </div>
                       </div>
                     ))}
                   </div>
-                ) : null}
+                )}
               </PopoverContent>
             </Popover>
           </div>
@@ -279,6 +233,17 @@ const AppHeader: React.FC = () => {
           </DropdownMenu>
         </div>
       </div>
+      
+      {/* Fundamentals Modal */}
+      <FundamentalsModal 
+        open={showFundamentalsModal}
+        onOpenChange={handleCloseModal}
+        selectedInstrument={selectedInstrument}
+        fundamentals={fundamentals}
+        isLoading={isLoadingFundamentals}
+        error={fundamentalsError}
+        onAddToWatchlist={handleAddToWatchlist}
+      />
     </header>
   );
 };
