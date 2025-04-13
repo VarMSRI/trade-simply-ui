@@ -49,7 +49,8 @@ class EventSourcePolyfill implements CustomEventSource {
     open: [],
     message: [],
     error: [],
-    close: []
+    close: [],
+    heartbeat: []
   };
   
   readonly CLOSED: number = 2;
@@ -58,12 +59,24 @@ class EventSourcePolyfill implements CustomEventSource {
   
   url: string;
   withCredentials: boolean;
+  private lastHeartbeat: number = 0;
+  private heartbeatInterval: number | null = null;
   
   constructor(url: string, options: any) {
     this.url = url;
     this.options = options;
     this.withCredentials = !!options.withCredentials;
     this.init();
+    
+    // Monitor heartbeats to detect disconnections
+    this.heartbeatInterval = window.setInterval(() => {
+      const now = Date.now();
+      // If no heartbeat for more than 40 seconds (server sends every 30 seconds)
+      if (this.lastHeartbeat > 0 && now - this.lastHeartbeat > 40000) {
+        console.warn('Heartbeat timeout detected, reconnecting...');
+        this.reconnect();
+      }
+    }, 10000); // Check every 10 seconds
   }
 
   private async init() {
@@ -95,6 +108,7 @@ class EventSourcePolyfill implements CustomEventSource {
             
             if (done) {
               this.dispatchEvent(new Event('close'));
+              this.reconnect();
               break;
             }
             
@@ -120,6 +134,15 @@ class EventSourcePolyfill implements CustomEventSource {
                 }
               }
               
+              // Handle heartbeat events
+              if (eventType === 'heartbeat') {
+                this.lastHeartbeat = Date.now();
+                this.dispatchEvent(new MessageEvent('heartbeat', {
+                  data: data
+                }));
+                continue;
+              }
+              
               // Dispatch event
               const messageEvent = new MessageEvent(eventType, {
                 data: data,
@@ -130,15 +153,35 @@ class EventSourcePolyfill implements CustomEventSource {
             }
           }
         } catch (err) {
+          console.error('Stream processing error:', err);
           this.dispatchEvent(new Event('error'));
+          this.reconnect();
         }
       };
 
       // Start processing and dispatch open event
       processStream();
       this.dispatchEvent(new Event('open'));
+      this.lastHeartbeat = Date.now(); // Initialize heartbeat time on connection
     } catch (err) {
+      console.error('Connection error:', err);
       this.dispatchEvent(new Event('error'));
+      this.reconnect();
+    }
+  }
+  
+  private reconnect() {
+    console.log('Attempting to reconnect SSE...');
+    
+    // Close current connection if any
+    try {
+      // Clean up any existing resources
+      // Give some time before reconnecting to avoid rapid reconnection attempts
+      setTimeout(() => {
+        this.init();
+      }, 2000);
+    } catch (e) {
+      console.error('Error during reconnection:', e);
     }
   }
 
@@ -167,16 +210,22 @@ class EventSourcePolyfill implements CustomEventSource {
   }
 
   close(): void {
+    if (this.heartbeatInterval) {
+      window.clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
+    
     this.listeners = {
       open: [],
       message: [],
       error: [],
-      close: []
+      close: [],
+      heartbeat: []
     };
   }
   
   get readyState(): number {
-    return 1; // Always return OPEN for simplicity
+    return this.lastHeartbeat > 0 ? this.OPEN : this.CONNECTING;
   }
 
   // Event handlers

@@ -8,11 +8,13 @@ import {
   Loader2, 
   AlertCircle, 
   BellRing, 
-  TrendingUp
+  TrendingUp,
+  Signal
 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 const Recommendations: React.FC = () => {
-  const { alerts, isConnected, error } = useTradeAlerts();
+  const { alerts, isConnected, error, lastHeartbeat } = useTradeAlerts();
   
   return (
     <>
@@ -21,8 +23,19 @@ const Recommendations: React.FC = () => {
           <BellRing className="h-7 w-7 text-primary" />
           Trade Recommendations
         </h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="text-muted-foreground mt-1 flex items-center gap-2">
           Real-time trading alerts based on market analysis and patterns
+          {isConnected && (
+            <Badge variant="outline" className="ml-2 flex items-center gap-1">
+              <Signal className="h-3 w-3 text-green-500" />
+              <span className="text-xs">Connected</span>
+              {lastHeartbeat && (
+                <span className="text-xs ml-1">
+                  (Last ping: {new Date(lastHeartbeat).toLocaleTimeString()})
+                </span>
+              )}
+            </Badge>
+          )}
         </p>
       </div>
       
