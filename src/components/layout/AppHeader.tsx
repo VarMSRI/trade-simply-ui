@@ -12,7 +12,8 @@ import {
   Moon,
   LogOut,
   LineChart,
-  PlusCircle
+  PlusCircle,
+  BarChart4
 } from 'lucide-react';
 import { 
   DropdownMenu,
@@ -33,6 +34,8 @@ import { useTheme } from '@/providers/ThemeProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import instrumentService from '@/services/instrumentService';
 import { Instrument } from '@/types/watchlist';
+import FundamentalsCard from '@/components/trading/FundamentalsCard';
+import { useFundamentals } from '@/hooks/useFundamentals';
 
 const AppHeader: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
@@ -44,6 +47,15 @@ const AppHeader: React.FC = () => {
   const [searchResults, setSearchResults] = useState<Instrument[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [selectedInstrument, setSelectedInstrument] = useState<Instrument | null>(null);
+  
+  const {
+    fundamentals,
+    isLoading: isLoadingFundamentals,
+    error: fundamentalsError,
+    fetchFundamentals,
+    clearFundamentals
+  } = useFundamentals();
 
   // Debounce search as user types
   useEffect(() => {
@@ -79,6 +91,8 @@ const AppHeader: React.FC = () => {
   const handleTradeInstrument = (instrument: Instrument) => {
     setIsSearchOpen(false);
     setSearchQuery('');
+    setSelectedInstrument(null);
+    clearFundamentals();
     
     // Navigate to trading page with the selected instrument
     navigate(`/trading?symbol=${instrument.tradingsymbol}`);
@@ -88,6 +102,8 @@ const AppHeader: React.FC = () => {
   const handleAddToWatchlist = (instrument: Instrument) => {
     setIsSearchOpen(false);
     setSearchQuery('');
+    setSelectedInstrument(null);
+    clearFundamentals();
     
     // Navigate to watchlist page
     navigate('/watchlist', { 
@@ -102,13 +118,32 @@ const AppHeader: React.FC = () => {
     
     toast.success(`${instrument.tradingsymbol} ready to be added to watchlist`);
   };
+  
+  const handleShowFundamentals = async (instrument: Instrument) => {
+    setSelectedInstrument(instrument);
+    
+    try {
+      await fetchFundamentals(instrument.instrument_token);
+    } catch (error) {
+      console.error('Error fetching fundamentals:', error);
+      toast.error('Failed to fetch company fundamentals');
+    }
+  };
 
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
     if (!e.target.value.trim()) {
       setSearchResults([]);
       setIsSearchOpen(false);
+      setSelectedInstrument(null);
+      clearFundamentals();
     }
+  };
+  
+  const handleCloseSearch = () => {
+    setIsSearchOpen(false);
+    setSelectedInstrument(null);
+    clearFundamentals();
   };
 
   return (
@@ -122,7 +157,7 @@ const AppHeader: React.FC = () => {
         
         <div className="hidden md:flex items-center relative w-80">
           <div className="w-full relative">
-            <Popover open={isSearchOpen && searchResults.length > 0} onOpenChange={setIsSearchOpen}>
+            <Popover open={isSearchOpen && (searchResults.length > 0 || selectedInstrument)} onOpenChange={setIsSearchOpen}>
               <PopoverTrigger asChild>
                 <div className="relative w-full">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -138,6 +173,20 @@ const AppHeader: React.FC = () => {
               <PopoverContent className="p-0 w-80" align="end">
                 {isSearching ? (
                   <div className="p-4 text-center text-muted-foreground">Searching...</div>
+                ) : selectedInstrument ? (
+                  <div className="p-2">
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="font-medium">{selectedInstrument.tradingsymbol}</h4>
+                      <Button variant="ghost" size="sm" onClick={handleCloseSearch}>
+                        Back to search
+                      </Button>
+                    </div>
+                    <FundamentalsCard
+                      fundamentals={fundamentals}
+                      isLoading={isLoadingFundamentals}
+                      error={fundamentalsError}
+                    />
+                  </div>
                 ) : searchResults.length > 0 ? (
                   <div className="max-h-[300px] overflow-auto">
                     {searchResults.map((instrument) => (
@@ -153,7 +202,14 @@ const AppHeader: React.FC = () => {
                           <Button 
                             variant="outline" 
                             size="sm" 
-                            className="w-full"
+                            onClick={() => handleShowFundamentals(instrument)}
+                          >
+                            <BarChart4 className="h-3 w-3 mr-1" />
+                            Fundamentals
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
                             onClick={() => handleTradeInstrument(instrument)}
                           >
                             <LineChart className="h-3 w-3 mr-1" />
@@ -162,11 +218,10 @@ const AppHeader: React.FC = () => {
                           <Button 
                             variant="outline" 
                             size="sm" 
-                            className="w-full"
                             onClick={() => handleAddToWatchlist(instrument)}
                           >
                             <PlusCircle className="h-3 w-3 mr-1" />
-                            Add to Watchlist
+                            Watchlist
                           </Button>
                         </div>
                       </div>

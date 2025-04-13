@@ -103,6 +103,21 @@ class InstrumentService {
   public getInstrumentByToken(token: number): Instrument | undefined {
     return this.instruments.find(i => i.instrument_token === token);
   }
+  
+  public async getFundamentals(instrumentToken: number): Promise<any> {
+    try {
+      const response = await fetch(`http://13.201.200.220:2020/oauth/get-fundamentals?instrumentToken=${instrumentToken}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch fundamentals: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching fundamentals:', error);
+      throw error;
+    }
+  }
 }
 
 // Create a singleton instance

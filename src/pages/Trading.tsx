@@ -3,10 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useSearchInstruments } from '@/hooks/useSearchInstruments';
+import { useFundamentals } from '@/hooks/useFundamentals';
 import SearchBar from '@/components/trading/SearchBar';
 import SearchResults from '@/components/trading/SearchResults';
 import StockDetail from '@/components/trading/StockDetail';
+import FundamentalsCard from '@/components/trading/FundamentalsCard';
 import instrumentService from '@/services/instrumentService';
+import { toast } from 'sonner';
 
 interface AssetInfo {
   symbol: string;
@@ -24,6 +27,7 @@ interface AssetInfo {
 const Trading: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAsset, setSelectedAsset] = useState<AssetInfo | null>(null);
+  const [showFundamentals, setShowFundamentals] = useState(false);
   const debouncedSearch = useDebounce(searchQuery, 300);
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -33,6 +37,14 @@ const Trading: React.FC = () => {
     isLoading: isSearching, 
     error: searchError 
   } = useSearchInstruments(debouncedSearch);
+  
+  const {
+    fundamentals,
+    isLoading: isLoadingFundamentals,
+    error: fundamentalsError,
+    fetchFundamentals,
+    clearFundamentals
+  } = useFundamentals();
 
   // Handle URL parameter for symbol
   useEffect(() => {
@@ -60,6 +72,10 @@ const Trading: React.FC = () => {
   };
 
   const handleAssetSelect = (result: any) => {
+    // Clear fundamentals when selecting a new asset
+    clearFundamentals();
+    setShowFundamentals(false);
+    
     // In a real app, you would fetch additional data for the selected asset
     // For now, creating a sample asset with data from the search result
     setSelectedAsset({
@@ -74,6 +90,15 @@ const Trading: React.FC = () => {
       dividend: result.dividendYield || 0.78,
       instrumentToken: result.token
     });
+  };
+  
+  const handleFundamentalsRequest = async (instrumentToken: number) => {
+    try {
+      setShowFundamentals(true);
+      await fetchFundamentals(instrumentToken);
+    } catch (error) {
+      toast.error('Failed to fetch fundamentals');
+    }
   };
 
   return (
@@ -92,6 +117,9 @@ const Trading: React.FC = () => {
           setSearchQuery={setSearchQuery}
           isSearching={isSearching}
           searchError={searchError}
+          onRequestFundamentals={selectedAsset ? handleFundamentalsRequest : undefined}
+          selectedInstrumentToken={selectedAsset?.instrumentToken}
+          isFundamentalsVisible={showFundamentals}
         />
         
         {/* Search Results */}
@@ -104,6 +132,15 @@ const Trading: React.FC = () => {
         
         {/* Stock Detail */}
         {selectedAsset && <StockDetail selectedAsset={selectedAsset} />}
+        
+        {/* Fundamentals Card */}
+        {showFundamentals && (
+          <FundamentalsCard 
+            fundamentals={fundamentals}
+            isLoading={isLoadingFundamentals}
+            error={fundamentalsError}
+          />
+        )}
       </div>
     </>
   );
