@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -132,11 +131,6 @@ const FundamentalsModal: React.FC<FundamentalsModalProps> = ({
               <Badge variant="outline" className="bg-secondary/10">
                 {selectedInstrument.exchange || 'NSE'}
               </Badge>
-              {selectedInstrument.last_price && selectedInstrument.last_price > 0 && (
-                <Badge variant="outline" className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
-                  ₹{selectedInstrument.last_price}
-                </Badge>
-              )}
             </div>
           </div>
         </DialogHeader>

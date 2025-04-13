@@ -9,7 +9,7 @@ interface InstrumentSearchResult {
   symbol: string;
   name: string;
   exchange: string;
-  lastPrice: number | null;
+  lastPrice: null;
   change: number | null;
   changePercent: number | null;
 }
@@ -39,7 +39,7 @@ export function useSearchInstruments(query: string) {
           symbol: instrument.tradingsymbol,
           name: instrument.name || '',
           exchange: instrument.exchange || 'NSE',
-          lastPrice: instrument.last_price > 0 ? instrument.last_price : null,
+          lastPrice: null, // Always set lastPrice to null
           // Since these properties don't exist in the Instrument type, set them to null
           change: null,
           changePercent: null,
