@@ -157,7 +157,10 @@ const AppHeader: React.FC = () => {
         
         <div className="hidden md:flex items-center relative w-80">
           <div className="w-full relative">
-            <Popover open={isSearchOpen && (searchResults.length > 0 || selectedInstrument)} onOpenChange={setIsSearchOpen}>
+            <Popover 
+              open={isSearchOpen && (searchResults.length > 0 || !!selectedInstrument)} 
+              onOpenChange={setIsSearchOpen}
+            >
               <PopoverTrigger asChild>
                 <div className="relative w-full">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
