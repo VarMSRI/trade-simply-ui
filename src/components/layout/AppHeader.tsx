@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -54,7 +53,6 @@ const AppHeader: React.FC = () => {
     clearFundamentals
   } = useFundamentals();
 
-  // Debounce search as user types
   useEffect(() => {
     const fetchResults = async () => {
       if (searchQuery.trim().length < 2) {
@@ -75,7 +73,6 @@ const AppHeader: React.FC = () => {
       }
     };
 
-    // Add debounce to avoid too many API calls
     const debounceTimer = setTimeout(() => {
       if (searchQuery.trim()) {
         fetchResults();
@@ -90,7 +87,6 @@ const AppHeader: React.FC = () => {
     setIsSearchOpen(false);
     setSearchQuery(''); // Clear search
     
-    // Open the modal
     setShowFundamentalsModal(true);
     
     try {
@@ -106,7 +102,6 @@ const AppHeader: React.FC = () => {
     setSelectedInstrument(null);
     clearFundamentals();
     
-    // Navigate to watchlist page
     navigate('/watchlist', { 
       state: { 
         addInstrument: {
@@ -175,7 +170,7 @@ const AppHeader: React.FC = () => {
                         <div className="flex flex-col w-full">
                           <span className="font-medium">{instrument.tradingsymbol}</span>
                           <span className="text-sm text-muted-foreground">{instrument.name}</span>
-                          {instrument.last_price && (
+                          {instrument.last_price && instrument.last_price > 0 && (
                             <span className="text-sm font-medium text-green-600 dark:text-green-400">
                               ₹{instrument.last_price}
                             </span>
@@ -234,7 +229,6 @@ const AppHeader: React.FC = () => {
         </div>
       </div>
       
-      {/* Fundamentals Modal */}
       <FundamentalsModal 
         open={showFundamentalsModal}
         onOpenChange={handleCloseModal}

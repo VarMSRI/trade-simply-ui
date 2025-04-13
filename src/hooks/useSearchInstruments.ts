@@ -39,7 +39,7 @@ export function useSearchInstruments(query: string) {
           symbol: instrument.tradingsymbol,
           name: instrument.name || '',
           exchange: instrument.exchange || 'NSE',
-          lastPrice: instrument.last_price,
+          lastPrice: instrument.last_price > 0 ? instrument.last_price : null,
           // Since these properties don't exist in the Instrument type, set them to null
           change: null,
           changePercent: null,

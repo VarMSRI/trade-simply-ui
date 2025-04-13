@@ -96,12 +96,7 @@ class InstrumentService {
       instrument => 
         instrument.tradingsymbol?.toLowerCase().includes(normalizedQuery) || 
         instrument.name?.toLowerCase().includes(normalizedQuery)
-    ).slice(0, 15) // Limit results to 15
-    .map(instrument => ({
-      ...instrument,
-      // Remove the '0' from the name if it exists
-      name: instrument.name.replace(' L 0', ' L').replace(' 0', '')
-    }));
+    ).slice(0, 15); // Limit results to 15
   }
 
   public getInstrumentByToken(token: number): Instrument | undefined {

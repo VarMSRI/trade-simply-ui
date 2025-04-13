@@ -49,7 +49,11 @@ const SearchResults: React.FC<SearchResultsProps> = ({ searchResults, onSelect }
                 <TableCell className="font-medium">{result.symbol}</TableCell>
                 <TableCell>{result.name}</TableCell>
                 <TableCell>{result.exchange}</TableCell>
-                <TableCell>{result.lastPrice ? `₹${result.lastPrice.toFixed(2)}` : 'N/A'}</TableCell>
+                <TableCell>
+                  {result.lastPrice && result.lastPrice > 0 
+                    ? `₹${result.lastPrice.toFixed(2)}` 
+                    : 'N/A'}
+                </TableCell>
                 <TableCell>
                   <Button 
                     variant="ghost" 
