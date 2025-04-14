@@ -157,7 +157,7 @@ export const useTradeAlerts = () => {
             data: event.data,
             timestamp: now
           });
-          
+          setIsConnected(true);
           setLastHeartbeat(now);
         });
         
