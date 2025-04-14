@@ -10,12 +10,16 @@ import {
   BellRing, 
   TrendingUp,
   Signal,
-  WifiOff
+  WifiOff,
+  ShieldAlert
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 const Recommendations: React.FC = () => {
   const { alerts, isConnecting, isConnected, error, lastHeartbeat } = useTradeAlerts();
+  
+  // Check if error contains CORS
+  const isCorsError = error?.toLowerCase().includes('cors');
   
   return (
     <>
@@ -42,10 +46,23 @@ const Recommendations: React.FC = () => {
       
       {error && (
         <Alert variant="destructive" className="mb-6">
-          <AlertCircle className="h-4 w-4" />
+          {isCorsError ? (
+            <ShieldAlert className="h-4 w-4" />
+          ) : (
+            <AlertCircle className="h-4 w-4" />
+          )}
           <AlertDescription className="flex items-center gap-2">
             <span>{error}</span>
             {isConnecting && <Loader2 className="h-3 w-3 animate-spin" />}
+            {isCorsError && (
+              <div className="mt-2 text-xs">
+                <p>This is typically caused by server configuration issues:</p>
+                <ul className="list-disc pl-5 mt-1">
+                  <li>The server needs to allow the 'Authorization' header in CORS</li>
+                  <li>The server needs to allow your current origin ({window.location.origin})</li>
+                </ul>
+              </div>
+            )}
           </AlertDescription>
         </Alert>
       )}

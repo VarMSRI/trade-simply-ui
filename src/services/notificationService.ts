@@ -25,10 +25,9 @@ const notificationService = {
     const token = localStorage.getItem('token');
     const url = `${BASE_URL}/api/notifications/stream`;
     
-    // Create headers for EventSource
+    // Create headers for EventSource - Remove Cache-Control header to fix CORS issue
     const headers = {
       'Accept': 'text/event-stream',
-      'Cache-Control': 'no-cache',
       'Authorization': `Bearer ${token}`,
       'X-Internal-Request': 'true'
     };
@@ -137,10 +136,29 @@ class EventSourcePolyfill implements CustomEventSource {
       this.dispatchEvent(new Event('open'));
       this.lastHeartbeat = Date.now(); // Initialize heartbeat time on connection
       
-    } catch (err) {
+    } catch (err: any) {
       console.error('Connection error:', err);
       this._readyState = this.CLOSED;
-      this.dispatchEvent(new Event('error'));
+      
+      // Check if it's a CORS error and create a more specific event for it
+      if (err.message && (
+        err.message.includes('CORS') || 
+        err.message.includes('Network error') || 
+        err.message.includes('Failed to fetch')
+      )) {
+        // Create a custom error event with CORS information
+        const corsError = new ErrorEvent('error', {
+          message: 'CORS error: The server is not allowing cross-origin requests with the specified headers',
+          error: err
+        });
+        
+        // Dispatch the custom error event
+        this.dispatchEvent(corsError as unknown as Event);
+      } else {
+        // Dispatch regular error for other types of errors
+        this.dispatchEvent(new Event('error'));
+      }
+      
       this.reconnect();
     }
   }

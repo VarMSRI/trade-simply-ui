@@ -129,8 +129,10 @@ export const useTradeAlerts = () => {
           
           // Check if it's a CORS error
           if ((err as any)?.message?.includes('CORS') || 
-              (err as any)?.target?.status === 0) {
-            setError('CORS error: The server is not allowing cross-origin requests. Please check server configuration.');
+              (err as any)?.target?.status === 0 ||
+              (err as ErrorEvent)?.message?.includes('CORS')) {
+            setError('CORS error: Unable to connect due to cross-origin restrictions. This is likely a server configuration issue.');
+            toast.error('Connection blocked by CORS policy');
           } else {
             setError('Connection to alerts feed lost. Reconnecting...');
           }
@@ -144,10 +146,11 @@ export const useTradeAlerts = () => {
             window.clearTimeout(reconnectTimeoutRef.current);
           }
           
-          // Attempt to reconnect after a delay
+          // Attempt to reconnect after a delay (longer delay for CORS errors)
+          const delay = (err as any)?.message?.includes('CORS') ? 10000 : 5000;
           reconnectTimeoutRef.current = window.setTimeout(() => {
             connectToSSE();
-          }, 5000);
+          }, delay);
         };
       } catch (err) {
         console.error('SSE connection setup error:', err);
