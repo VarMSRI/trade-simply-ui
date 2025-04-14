@@ -4,6 +4,7 @@ import { useTradeAlerts } from '@/hooks/useTradeAlerts';
 import AlertCard from '@/components/trading/AlertCard';
 import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { 
   Loader2, 
   AlertCircle, 
@@ -11,7 +12,8 @@ import {
   TrendingUp,
   Signal,
   WifiOff,
-  ShieldAlert
+  ShieldAlert,
+  RefreshCw
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
@@ -20,6 +22,11 @@ const Recommendations: React.FC = () => {
   
   // Check if error contains CORS
   const isCorsError = error?.toLowerCase().includes('cors');
+  
+  // Force page reload to reconnect
+  const handleReconnect = () => {
+    window.location.reload();
+  };
   
   return (
     <>
@@ -51,9 +58,12 @@ const Recommendations: React.FC = () => {
           ) : (
             <AlertCircle className="h-4 w-4" />
           )}
-          <AlertDescription className="flex items-center gap-2">
-            <span>{error}</span>
-            {isConnecting && <Loader2 className="h-3 w-3 animate-spin" />}
+          <AlertDescription className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <span>{error}</span>
+              {isConnecting && <Loader2 className="h-3 w-3 animate-spin" />}
+            </div>
+            
             {isCorsError && (
               <div className="mt-2 text-xs">
                 <p>This is typically caused by server configuration issues:</p>
@@ -61,6 +71,15 @@ const Recommendations: React.FC = () => {
                   <li>The server needs to allow the 'Authorization' header in CORS</li>
                   <li>The server needs to allow your current origin ({window.location.origin})</li>
                 </ul>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-2 flex items-center gap-1"
+                  onClick={handleReconnect}
+                >
+                  <RefreshCw className="h-3 w-3" />
+                  Try reconnecting
+                </Button>
               </div>
             )}
           </AlertDescription>
@@ -77,8 +96,17 @@ const Recommendations: React.FC = () => {
       {!isConnected && !isConnecting && !error && (
         <Alert variant="destructive" className="mb-6">
           <WifiOff className="h-4 w-4" />
-          <AlertDescription>
-            Disconnected from alerts feed. Attempting to reconnect...
+          <AlertDescription className="flex justify-between items-center">
+            <span>Disconnected from alerts feed. Attempting to reconnect...</span>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center gap-1"
+              onClick={handleReconnect}
+            >
+              <RefreshCw className="h-3 w-3" />
+              Try manually
+            </Button>
           </AlertDescription>
         </Alert>
       )}

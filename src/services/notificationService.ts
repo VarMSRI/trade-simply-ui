@@ -95,7 +95,7 @@ class EventSourcePolyfill implements CustomEventSource {
       // Create abort controller for fetch
       this.abortController = new AbortController();
       
-      // Add credentials option for CORS
+      // Add credentials option for CORS - Remove Cache-Control header that's causing CORS issues
       const fetchOptions: RequestInit = {
         method: 'GET',
         headers: this.options.headers,
