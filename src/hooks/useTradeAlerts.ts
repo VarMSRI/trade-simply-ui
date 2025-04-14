@@ -16,10 +16,12 @@ export const useTradeAlerts = () => {
   useEffect(() => {
     const connectToSSE = () => {
       try {
+        console.log('Attempting to connect to trade alerts SSE stream');
         setIsConnecting(true);
         
         // Clean up any existing connection
         if (eventSourceRef.current) {
+          console.log('Closing existing SSE connection');
           eventSourceRef.current.close();
           eventSourceRef.current = null;
         }
@@ -30,7 +32,7 @@ export const useTradeAlerts = () => {
         
         // Handle connection open
         eventSource.onopen = () => {
-          console.log('SSE connection established');
+          console.log('SSE connection established successfully');
           setIsConnected(true);
           setIsConnecting(false);
           setError(null);
@@ -39,7 +41,7 @@ export const useTradeAlerts = () => {
         // Listen for all event types
         eventSource.onmessage = (event: MessageEvent) => {
           try {
-            console.log('Received SSE message:', event.data);
+            console.log('Received general SSE message:', event.data);
             const alertData: TradeAlert = JSON.parse(event.data);
             
             // Make sure we have a consistent security field
@@ -77,7 +79,7 @@ export const useTradeAlerts = () => {
         // Listen specifically for alert events
         eventSource.addEventListener('alert', (event: MessageEvent) => {
           try {
-            console.log('Received alert event:', event.data);
+            console.log('Received specific alert event:', event.data);
             const alertData: TradeAlert = JSON.parse(event.data);
             
             // Make sure we have a consistent security field
@@ -124,7 +126,14 @@ export const useTradeAlerts = () => {
           console.error('SSE connection error:', err);
           setIsConnected(false);
           setIsConnecting(false);
-          setError('Connection to alerts feed lost. Reconnecting...');
+          
+          // Check if it's a CORS error
+          if ((err as any)?.message?.includes('CORS') || 
+              (err as any)?.target?.status === 0) {
+            setError('CORS error: The server is not allowing cross-origin requests. Please check server configuration.');
+          } else {
+            setError('Connection to alerts feed lost. Reconnecting...');
+          }
           
           // Close the current connection
           eventSource.close();
@@ -144,7 +153,7 @@ export const useTradeAlerts = () => {
         console.error('SSE connection setup error:', err);
         setIsConnected(false);
         setIsConnecting(false);
-        setError('Failed to connect to alerts feed');
+        setError(`Failed to connect to alerts feed: ${(err as Error).message}`);
         
         // Clear any existing reconnect timeout
         if (reconnectTimeoutRef.current) {
@@ -163,7 +172,7 @@ export const useTradeAlerts = () => {
     // Cleanup function
     return () => {
       if (eventSourceRef.current) {
-        console.log('Closing SSE connection');
+        console.log('Closing SSE connection on unmount');
         eventSourceRef.current.close();
         eventSourceRef.current = null;
       }

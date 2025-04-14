@@ -25,7 +25,7 @@ const notificationService = {
     const token = localStorage.getItem('token');
     const url = `${BASE_URL}/api/notifications/stream`;
     
-    // Create headers for fetch
+    // Create headers for EventSource
     const headers = {
       'Accept': 'text/event-stream',
       'Cache-Control': 'no-cache',
@@ -33,11 +33,11 @@ const notificationService = {
       'X-Internal-Request': 'true'
     };
     
-    // Create an EventSource with headers using fetch + ReadableStream
-    // Since native EventSource doesn't support custom headers
+    // Use our polyfill to support custom headers and better connection handling
     return new EventSourcePolyfill(url, { 
       headers,
-      withCredentials: true 
+      withCredentials: true,
+      mode: 'cors' // Explicitly set CORS mode
     }) as unknown as EventSource;
   }
 };
@@ -64,11 +64,17 @@ class EventSourcePolyfill implements CustomEventSource {
   private lastHeartbeat: number = 0;
   private heartbeatInterval: number | null = null;
   private processStreamPromise: Promise<void> | null = null;
+  private reconnectAttempts: number = 0;
+  private maxReconnectAttempts: number = 10;
+  private reconnectDelay: number = 2000;
   
   constructor(url: string, options: any) {
     this.url = url;
-    this.options = options;
+    this.options = options || {};
     this.withCredentials = !!options.withCredentials;
+    console.log('Creating new EventSourcePolyfill with URL:', url);
+    console.log('Options:', JSON.stringify(this.options));
+    
     this.init();
     
     // Monitor heartbeats to detect disconnections
@@ -85,32 +91,46 @@ class EventSourcePolyfill implements CustomEventSource {
   private async init() {
     try {
       this._readyState = this.CONNECTING;
+      console.log('Connecting to SSE endpoint:', this.url);
       
       // Create abort controller for fetch
       this.abortController = new AbortController();
       
-      // Use fetch API to make a request with custom headers
-      const response = await fetch(this.url, {
+      // Add credentials option for CORS
+      const fetchOptions: RequestInit = {
         method: 'GET',
         headers: this.options.headers,
         credentials: this.options.withCredentials ? 'include' : 'same-origin',
-        signal: this.abortController.signal
-      });
+        signal: this.abortController.signal,
+        mode: this.options.mode || 'cors',
+      };
+      
+      console.log('Fetch options:', JSON.stringify(fetchOptions));
+      
+      // Use fetch API to make a request with custom headers
+      const response = await fetch(this.url, fetchOptions);
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error('SSE connection failed with status:', response.status, errorText);
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
       
       if (!response.body) {
+        console.error('ReadableStream not supported');
         throw new Error('ReadableStream not supported');
       }
 
+      console.log('SSE connection established, processing stream');
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
 
       // Process the stream
       this.processStreamPromise = this.processStream(reader, decoder, buffer);
+      
+      // Reset reconnect attempts on successful connection
+      this.reconnectAttempts = 0;
       
       // Dispatch open event
       this._readyState = this.OPEN;
@@ -170,6 +190,8 @@ class EventSourcePolyfill implements CustomEventSource {
             continue;
           }
           
+          console.log(`Received SSE event of type: ${eventType}, data:`, data);
+          
           // Dispatch event
           const messageEvent = new MessageEvent(eventType, {
             data: data,
@@ -179,7 +201,7 @@ class EventSourcePolyfill implements CustomEventSource {
           this.dispatchEvent(messageEvent);
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       if (err.name === 'AbortError') {
         console.log('Stream processing aborted intentionally');
         return;
@@ -193,7 +215,15 @@ class EventSourcePolyfill implements CustomEventSource {
   }
   
   private reconnect() {
-    console.log('Attempting to reconnect SSE...');
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.error(`Maximum reconnect attempts (${this.maxReconnectAttempts}) reached, giving up`);
+      return;
+    }
+    
+    this.reconnectAttempts++;
+    const delay = this.reconnectDelay * Math.pow(1.5, Math.min(this.reconnectAttempts - 1, 5));
+    
+    console.log(`Attempting to reconnect SSE (attempt ${this.reconnectAttempts}) after ${delay}ms...`);
     
     // Close current connection if any
     if (this.abortController) {
@@ -201,10 +231,10 @@ class EventSourcePolyfill implements CustomEventSource {
       this.abortController = null;
     }
     
-    // Give some time before reconnecting to avoid rapid reconnection attempts
+    // Give some time before reconnecting with exponential backoff
     setTimeout(() => {
       this.init();
-    }, 2000);
+    }, delay);
   }
 
   addEventListener(type: string, listener: EventListener): void {
