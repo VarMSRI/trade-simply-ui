@@ -9,12 +9,13 @@ import {
   AlertCircle, 
   BellRing, 
   TrendingUp,
-  Signal
+  Signal,
+  WifiOff
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 const Recommendations: React.FC = () => {
-  const { alerts, isConnected, error, lastHeartbeat } = useTradeAlerts();
+  const { alerts, isConnecting, isConnected, error, lastHeartbeat } = useTradeAlerts();
   
   return (
     <>
@@ -42,15 +43,27 @@ const Recommendations: React.FC = () => {
       {error && (
         <Alert variant="destructive" className="mb-6">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription className="flex items-center gap-2">
+            <span>{error}</span>
+            {isConnecting && <Loader2 className="h-3 w-3 animate-spin" />}
+          </AlertDescription>
         </Alert>
       )}
       
-      {!isConnected && !error && (
+      {isConnecting && !error && (
         <div className="flex items-center gap-2 mb-6 text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
           Connecting to alerts feed...
         </div>
+      )}
+      
+      {!isConnected && !isConnecting && !error && (
+        <Alert variant="destructive" className="mb-6">
+          <WifiOff className="h-4 w-4" />
+          <AlertDescription>
+            Disconnected from alerts feed. Attempting to reconnect...
+          </AlertDescription>
+        </Alert>
       )}
       
       {isConnected && alerts.length === 0 && (

@@ -6,33 +6,38 @@ import { toast } from 'sonner';
 
 export const useTradeAlerts = () => {
   const [alerts, setAlerts] = useState<TradeAlert[]>([]);
+  const [isConnecting, setIsConnecting] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastHeartbeat, setLastHeartbeat] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const reconnectTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
-    let eventSource: EventSource | null = null;
-    
     const connectToSSE = () => {
       try {
+        setIsConnecting(true);
+        
         // Clean up any existing connection
         if (eventSourceRef.current) {
           eventSourceRef.current.close();
+          eventSourceRef.current = null;
         }
         
-        eventSource = notificationService.getTradeAlertsStream();
+        // Create a new connection
+        const eventSource = notificationService.getTradeAlertsStream();
         eventSourceRef.current = eventSource;
         
         // Handle connection open
         eventSource.onopen = () => {
-          setIsConnected(true);
-          setError(null);
           console.log('SSE connection established');
+          setIsConnected(true);
+          setIsConnecting(false);
+          setError(null);
         };
         
         // Listen for all event types
-        eventSource.addEventListener('message', (event: MessageEvent) => {
+        eventSource.onmessage = (event: MessageEvent) => {
           try {
             console.log('Received SSE message:', event.data);
             const alertData: TradeAlert = JSON.parse(event.data);
@@ -67,7 +72,7 @@ export const useTradeAlerts = () => {
           } catch (err) {
             console.error('Failed to parse SSE message:', err);
           }
-        });
+        };
         
         // Listen specifically for alert events
         eventSource.addEventListener('alert', (event: MessageEvent) => {
@@ -109,25 +114,47 @@ export const useTradeAlerts = () => {
         
         // Handle heartbeat events
         eventSource.addEventListener('heartbeat', (event: MessageEvent) => {
-          setLastHeartbeat(new Date().toISOString());
-          console.log('Heartbeat received:', event.data);
+          const now = new Date().toISOString();
+          setLastHeartbeat(now);
+          console.log('Heartbeat received:', event.data, now);
         });
         
         // Handle connection errors
         eventSource.onerror = (err) => {
           console.error('SSE connection error:', err);
           setIsConnected(false);
+          setIsConnecting(false);
           setError('Connection to alerts feed lost. Reconnecting...');
           
           // Close the current connection
-          eventSource?.close();
+          eventSource.close();
+          eventSourceRef.current = null;
+          
+          // Clear any existing reconnect timeout
+          if (reconnectTimeoutRef.current) {
+            window.clearTimeout(reconnectTimeoutRef.current);
+          }
           
           // Attempt to reconnect after a delay
-          setTimeout(connectToSSE, 5000);
+          reconnectTimeoutRef.current = window.setTimeout(() => {
+            connectToSSE();
+          }, 5000);
         };
       } catch (err) {
         console.error('SSE connection setup error:', err);
+        setIsConnected(false);
+        setIsConnecting(false);
         setError('Failed to connect to alerts feed');
+        
+        // Clear any existing reconnect timeout
+        if (reconnectTimeoutRef.current) {
+          window.clearTimeout(reconnectTimeoutRef.current);
+        }
+        
+        // Attempt to reconnect after a delay
+        reconnectTimeoutRef.current = window.setTimeout(() => {
+          connectToSSE();
+        }, 5000);
       }
     };
     
@@ -135,16 +162,22 @@ export const useTradeAlerts = () => {
     
     // Cleanup function
     return () => {
-      if (eventSource) {
+      if (eventSourceRef.current) {
         console.log('Closing SSE connection');
-        eventSource.close();
+        eventSourceRef.current.close();
         eventSourceRef.current = null;
+      }
+      
+      if (reconnectTimeoutRef.current) {
+        window.clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
       }
     };
   }, []);
   
   return {
     alerts,
+    isConnecting,
     isConnected,
     error,
     lastHeartbeat
