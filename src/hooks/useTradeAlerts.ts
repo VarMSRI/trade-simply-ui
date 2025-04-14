@@ -12,6 +12,7 @@ export const useTradeAlerts = () => {
   const [lastHeartbeat, setLastHeartbeat] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
+  const allEventsRef = useRef<{type: string, data: string, timestamp: string}[]>([]);
 
   useEffect(() => {
     const connectToSSE = () => {
@@ -41,7 +42,16 @@ export const useTradeAlerts = () => {
         // Listen for all event types
         eventSource.onmessage = (event: MessageEvent) => {
           try {
-            console.log('Received general SSE message:', event.data);
+            const timestamp = new Date().toISOString();
+            console.log(`[${timestamp}] Received general SSE message:`, event.data);
+            
+            // Log event to history
+            allEventsRef.current.push({
+              type: 'message', 
+              data: event.data,
+              timestamp
+            });
+            
             const alertData: TradeAlert = JSON.parse(event.data);
             
             // Make sure we have a consistent security field
@@ -76,10 +86,32 @@ export const useTradeAlerts = () => {
           }
         };
         
+        // Set up global event listener to capture ALL incoming events
+        eventSource.addEventListener('message', (event: MessageEvent) => {
+          const timestamp = new Date().toISOString();
+          console.log(`[${timestamp}] Generic 'message' event received:`, event.data);
+          
+          // Add to event history
+          allEventsRef.current.push({
+            type: 'message', 
+            data: event.data,
+            timestamp
+          });
+        });
+        
         // Listen specifically for alert events
         eventSource.addEventListener('alert', (event: MessageEvent) => {
           try {
-            console.log('Received specific alert event:', event.data);
+            const timestamp = new Date().toISOString();
+            console.log(`[${timestamp}] Received specific 'alert' event:`, event.data);
+            
+            // Add to event history
+            allEventsRef.current.push({
+              type: 'alert', 
+              data: event.data,
+              timestamp
+            });
+            
             const alertData: TradeAlert = JSON.parse(event.data);
             
             // Make sure we have a consistent security field
@@ -117,8 +149,66 @@ export const useTradeAlerts = () => {
         // Handle heartbeat events
         eventSource.addEventListener('heartbeat', (event: MessageEvent) => {
           const now = new Date().toISOString();
+          console.log(`[${now}] Heartbeat received:`, event.data);
+          
+          // Add to event history
+          allEventsRef.current.push({
+            type: 'heartbeat', 
+            data: event.data,
+            timestamp: now
+          });
+          
           setLastHeartbeat(now);
-          console.log('Heartbeat received:', event.data, now);
+        });
+        
+        // Set up listeners for any other event types
+        ['update', 'notification', 'trade', 'market', 'system'].forEach(eventType => {
+          eventSource.addEventListener(eventType, (event: MessageEvent) => {
+            const timestamp = new Date().toISOString();
+            console.log(`[${timestamp}] Received '${eventType}' event:`, event.data);
+            
+            // Add to event history
+            allEventsRef.current.push({
+              type: eventType, 
+              data: event.data,
+              timestamp
+            });
+            
+            try {
+              // Attempt to parse and handle as an alert if it has the right structure
+              const data = JSON.parse(event.data);
+              if (data.security || data.security_code) {
+                console.log(`Treating '${eventType}' event as an alert:`, data);
+                
+                // Make sure we have a consistent security field
+                if (data.security_code && !data.security) {
+                  data.security = data.security_code;
+                }
+                
+                setAlerts(prevAlerts => {
+                  const securityValue = data.security || data.security_code || '';
+                  const exists = prevAlerts.some(a => 
+                    (a.security === securityValue) || 
+                    (a.security_code && a.security_code === securityValue)
+                  );
+                  
+                  if (exists) {
+                    return prevAlerts.map(alert => {
+                      const alertSecurity = alert.security || alert.security_code || '';
+                      const newSecurity = data.security || data.security_code || '';
+                      
+                      return alertSecurity === newSecurity ? data : alert;
+                    });
+                  } else {
+                    toast.info(`New trade alert from '${eventType}' event for ${securityValue}`);
+                    return [data, ...prevAlerts];
+                  }
+                });
+              }
+            } catch (err) {
+              console.log(`Event '${eventType}' is not in JSON format or doesn't contain alert data`);
+            }
+          });
         });
         
         // Handle connection errors
@@ -172,6 +262,21 @@ export const useTradeAlerts = () => {
     
     connectToSSE();
     
+    // Create a periodic logger to show all captured events
+    const logInterval = window.setInterval(() => {
+      if (allEventsRef.current.length > 0) {
+        console.log('---- EVENT HISTORY LOG ----');
+        console.log('Total events captured:', allEventsRef.current.length);
+        console.log('Last 10 events:', allEventsRef.current.slice(-10));
+        console.log('Event type counts:', 
+          allEventsRef.current.reduce((acc, event) => {
+            acc[event.type] = (acc[event.type] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>)
+        );
+      }
+    }, 30000); // Log every 30 seconds
+    
     // Cleanup function
     return () => {
       if (eventSourceRef.current) {
@@ -184,14 +289,25 @@ export const useTradeAlerts = () => {
         window.clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
       }
+      
+      if (logInterval) {
+        window.clearInterval(logInterval);
+      }
     };
   }, []);
+  
+  // Expose a function to get event history for debugging
+  const getEventHistory = () => {
+    console.log('All SSE events received:', allEventsRef.current);
+    return allEventsRef.current;
+  };
   
   return {
     alerts,
     isConnecting,
     isConnected,
     error,
-    lastHeartbeat
+    lastHeartbeat,
+    getEventHistory
   };
 };

@@ -178,6 +178,9 @@ class EventSourcePolyfill implements CustomEventSource {
         
         buffer += decoder.decode(value, { stream: true });
         
+        // Log raw incoming data for debugging
+        console.log('RAW SSE data received:', buffer);
+        
         // Process complete events in buffer
         const events = buffer.split('\n\n');
         buffer = events.pop() || '';
@@ -185,18 +188,43 @@ class EventSourcePolyfill implements CustomEventSource {
         for (const event of events) {
           if (event.trim() === '') continue;
           
+          // Log each event separately
+          console.log('RAW SSE event (before parsing):', event);
+          
           // Parse event
           const eventParts = event.split('\n');
           let eventType = 'message';
           let data = '';
+          let eventId = '';
+          let retry = '';
+          
+          // Create a structured object of all event parts for debugging
+          const eventPartsObj: Record<string, string> = {};
           
           for (const part of eventParts) {
+            // Log each line of the event
+            console.log('SSE event part:', part);
+            
             if (part.startsWith('event:')) {
               eventType = part.slice(6).trim();
+              eventPartsObj['event'] = eventType;
             } else if (part.startsWith('data:')) {
               data = part.slice(5).trim();
+              eventPartsObj['data'] = data;
+            } else if (part.startsWith('id:')) {
+              eventId = part.slice(3).trim();
+              eventPartsObj['id'] = eventId;
+            } else if (part.startsWith('retry:')) {
+              retry = part.slice(6).trim();
+              eventPartsObj['retry'] = retry;
+            } else if (part.trim() !== '') {
+              // Capture any unexpected formats
+              eventPartsObj[`unknown_${part.split(':')[0]}`] = part;
             }
           }
+          
+          console.log('Parsed SSE event parts:', eventPartsObj);
+          console.log(`SSE event detected - Type: ${eventType}, Data: ${data}`);
           
           // Handle heartbeat events
           if (eventType === 'heartbeat') {
@@ -208,14 +236,13 @@ class EventSourcePolyfill implements CustomEventSource {
             continue;
           }
           
-          console.log(`Received SSE event of type: ${eventType}, data:`, data);
-          
           // Dispatch event
           const messageEvent = new MessageEvent(eventType, {
             data: data,
             origin: window.location.origin
           });
           
+          console.log(`Dispatching SSE event of type: ${eventType}`);
           this.dispatchEvent(messageEvent);
         }
       }

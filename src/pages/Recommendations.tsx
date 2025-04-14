@@ -13,12 +13,13 @@ import {
   Signal,
   WifiOff,
   ShieldAlert,
-  RefreshCw
+  RefreshCw,
+  Bug
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 const Recommendations: React.FC = () => {
-  const { alerts, isConnecting, isConnected, error, lastHeartbeat } = useTradeAlerts();
+  const { alerts, isConnecting, isConnected, error, lastHeartbeat, getEventHistory } = useTradeAlerts();
   
   // Check if error contains CORS
   const isCorsError = error?.toLowerCase().includes('cors');
@@ -26,6 +27,22 @@ const Recommendations: React.FC = () => {
   // Force page reload to reconnect
   const handleReconnect = () => {
     window.location.reload();
+  };
+  
+  // Print all event history to console
+  const handleDebugEvents = () => {
+    if (getEventHistory) {
+      const events = getEventHistory();
+      console.log('DEBUG - All SSE events received:', events);
+      
+      // Log event type counts
+      const typeCounts = events.reduce((acc, event) => {
+        acc[event.type] = (acc[event.type] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      console.log('DEBUG - Event type counts:', typeCounts);
+    }
   };
   
   return (
@@ -49,6 +66,18 @@ const Recommendations: React.FC = () => {
             </Badge>
           )}
         </p>
+      </div>
+      
+      <div className="mb-4 flex justify-end">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="flex items-center gap-1"
+          onClick={handleDebugEvents}
+        >
+          <Bug className="h-3 w-3" />
+          Show Event Debug Info
+        </Button>
       </div>
       
       {error && (
