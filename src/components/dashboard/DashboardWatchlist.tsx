@@ -15,9 +15,13 @@ import { Star, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api from '@/services/api';
 import { WatchlistType } from '@/types/watchlist';
+import { useMarketDataStore } from '@/services/marketDataService';
+import { useMarketDataSubscriptions } from '@/hooks/useMarketDataSubscriptions';
+import WebSocketManager from '@/components/market/WebSocketManager';
 
 const DashboardWatchlist: React.FC = () => {
   const [firstWatchlist, setFirstWatchlist] = useState<WatchlistType | null>(null);
+  const marketData = useMarketDataStore(state => state.data);
   
   // Fetch all watchlists but only use the first one
   const { data: watchlists = [], isLoading } = useQuery({
@@ -36,83 +40,99 @@ const DashboardWatchlist: React.FC = () => {
       setFirstWatchlist(watchlists[0]);
     }
   }, [watchlists]);
+  
+  // Set up market data subscriptions
+  const { instrumentTokens } = useMarketDataSubscriptions(watchlists);
 
   return (
-    <Card className="col-span-2">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="flex items-center gap-2">
-          <Star className="h-5 w-5 text-primary" />
-          Watchlist
-        </CardTitle>
-        <Button variant="outline" size="sm" asChild>
-          <Link to="/watchlist">Manage Watchlists</Link>
-        </Button>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="flex justify-center items-center py-10">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : firstWatchlist ? (
-          firstWatchlist.items.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Symbol</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead className="text-right">Price</TableHead>
-                  <TableHead className="text-right">Change</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {firstWatchlist.items.slice(0, 5).map((item) => (
-                  <TableRow key={item.id} className="table-row-hover cursor-pointer">
-                    <TableCell className="font-medium">{item.trading_symbol}</TableCell>
-                    <TableCell>{item.instrument_name}</TableCell>
-                    <TableCell className="text-right">
-                      {item.lastPrice ? `₹${item.lastPrice.toFixed(2)}` : '-'}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {item.change !== null && item.changePercent !== null ? (
-                        <span className={item.change >= 0 ? "text-green-500" : "text-red-500"}>
-                          {item.change >= 0 ? "+" : ""}{item.change.toFixed(2)} ({item.change >= 0 ? "+" : ""}{item.changePercent.toFixed(2)}%)
-                        </span>
-                      ) : '-'}
-                    </TableCell>
+    <>
+      {/* WebSocket Manager - renders nothing visually */}
+      {instrumentTokens.length > 0 && <WebSocketManager instrumentTokens={instrumentTokens} />}
+      
+      <Card className="col-span-2">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Star className="h-5 w-5 text-primary" />
+            Watchlist
+          </CardTitle>
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/watchlist">Manage Watchlists</Link>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex justify-center items-center py-10">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : firstWatchlist ? (
+            firstWatchlist.items.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Symbol</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead className="text-right">Price</TableHead>
+                    <TableHead className="text-right">Change</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          ) : (
+                </TableHeader>
+                <TableBody>
+                  {firstWatchlist.items.slice(0, 5).map((item) => {
+                    // Get real-time market data if available
+                    const liveData = marketData[item.instrument_key];
+                    const lastPrice = liveData ? liveData.lastPrice : item.lastPrice;
+                    const change = liveData ? liveData.change : item.change;
+                    const changePercent = liveData ? liveData.changePercent : item.changePercent;
+                    
+                    return (
+                      <TableRow key={item.id} className="table-row-hover cursor-pointer">
+                        <TableCell className="font-medium">{item.trading_symbol}</TableCell>
+                        <TableCell>{item.instrument_name}</TableCell>
+                        <TableCell className="text-right">
+                          {lastPrice !== null ? `₹${lastPrice.toFixed(2)}` : '-'}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {change !== null && changePercent !== null ? (
+                            <span className={change >= 0 ? "text-green-500" : "text-red-500"}>
+                              {change >= 0 ? "+" : ""}{change.toFixed(2)} ({change >= 0 ? "+" : ""}{changePercent.toFixed(2)}%)
+                            </span>
+                          ) : '-'}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>No symbols in this watchlist</p>
+                <Button 
+                  variant="link" 
+                  asChild
+                  className="mt-2"
+                >
+                  <Link to="/watchlist">Add symbols</Link>
+                </Button>
+              </div>
+            )
+          ) : watchlists.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              <p>No symbols in this watchlist</p>
+              <p>No watchlists found</p>
               <Button 
-                variant="link" 
+                variant="link"
                 asChild
                 className="mt-2"
               >
-                <Link to="/watchlist">Add symbols</Link>
+                <Link to="/watchlist">Create your first watchlist</Link>
               </Button>
             </div>
-          )
-        ) : watchlists.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <p>No watchlists found</p>
-            <Button 
-              variant="link"
-              asChild
-              className="mt-2"
-            >
-              <Link to="/watchlist">Create your first watchlist</Link>
-            </Button>
-          </div>
-        ) : (
-          <div className="flex justify-center items-center py-10">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          ) : (
+            <div className="flex justify-center items-center py-10">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </>
   );
 };
 

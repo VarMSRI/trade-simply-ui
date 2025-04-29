@@ -3,8 +3,12 @@ import { useEffect } from 'react';
 import { Watchlist } from '@/types/watchlist';
 import subscriptionService from '@/services/subscriptionService';
 import { toast } from 'sonner';
+import { useMarketDataStore } from '@/services/marketDataService';
 
 export const useWatchlistSubscriptions = () => {
+  // Get market data store
+  const updateMarketData = useMarketDataStore(state => state.updateMarketData);
+  
   // Function to sync watchlist instruments with the subscription service
   const syncWatchlistSubscriptions = async (watchlists: Watchlist[]) => {
     try {
@@ -41,6 +45,20 @@ export const useWatchlistSubscriptions = () => {
       } else {
         console.log('All watchlist instruments are already subscribed');
       }
+      
+      // Also update the market data store with initial data from the watchlists
+      watchlists.forEach(watchlist => {
+        watchlist.items.forEach(item => {
+          if (item.lastPrice !== null) {
+            updateMarketData(item.instrument_key, {
+              lastTradedPrice: item.lastPrice,
+              change: item.change || 0,
+              changePercent: item.changePercent || 0,
+              timestamp: new Date().toISOString()
+            });
+          }
+        });
+      });
     } catch (error) {
       console.error('Error syncing watchlist subscriptions:', error);
       toast.error('Failed to subscribe to market data for watchlist instruments');

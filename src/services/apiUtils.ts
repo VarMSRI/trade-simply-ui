@@ -1,10 +1,20 @@
-
 const BASE_URL = 'https://app.intuitifi.com';
 
 export const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
+  const authData = localStorage.getItem('auth');
+  let token = null;
+  
+  if (authData) {
+    try {
+      const parsedData = JSON.parse(authData);
+      token = parsedData.token;
+    } catch (e) {
+      console.error('Failed to parse auth data from localStorage');
+    }
+  }
+  
   return {
-    'Authorization': `Bearer ${token}`,
+    'Authorization': token ? `Bearer ${token}` : 'Bearer null',
     'Accept': 'application/json',
   };
 };
