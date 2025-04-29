@@ -1,8 +1,11 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import PortfolioSummary from '@/components/dashboard/PortfolioSummary';
 import PortfolioHoldings from '@/components/dashboard/PortfolioHoldings';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
+import { FileBarChart } from 'lucide-react';
 import {
   PieChart,
   Pie,
@@ -10,7 +13,13 @@ import {
   ResponsiveContainer,
   Legend,
   Tooltip,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
 } from 'recharts';
+import { useAnalytics } from '@/hooks/useAnalytics';
 
 interface AssetAllocation {
   name: string;
@@ -19,6 +28,9 @@ interface AssetAllocation {
 }
 
 const Portfolio: React.FC = () => {
+  // Get portfolio status from analytics API
+  const { portfolioStatus } = useAnalytics();
+  
   // This would come from your API in a real application
   const assetAllocation: AssetAllocation[] = [
     { name: 'Technology', value: 45, color: '#3773f4' },
@@ -29,17 +41,50 @@ const Portfolio: React.FC = () => {
     { name: 'Other', value: 5, color: '#607D8B' },
   ];
 
+  // Mock data for performance chart
+  const generatePerformanceData = () => {
+    const data = [];
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - 6);
+
+    for (let i = 0; i <= 180; i += 7) {
+      const currentDate = new Date(startDate);
+      currentDate.setDate(currentDate.getDate() + i);
+      
+      // Generate a somewhat realistic growth curve with some volatility
+      const baseValue = 75000 + (i * 70); // Base portfolio value with growth
+      const randomVariation = Math.random() * 5000 - 2500; // Random variation
+      
+      data.push({
+        date: currentDate.toISOString().split('T')[0],
+        value: Math.round(baseValue + randomVariation),
+      });
+    }
+    
+    return data;
+  };
+
+  const performanceData = generatePerformanceData();
+
   return (
     <>
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold tracking-tight">Portfolio</h1>
-        <p className="text-muted-foreground mt-1">
-          Manage your investments and track performance
-        </p>
+      <div className="mb-6 flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Portfolio</h1>
+          <p className="text-muted-foreground mt-1">
+            Manage your investments and track performance
+          </p>
+        </div>
+        <Button asChild>
+          <Link to="/analytics">
+            <FileBarChart className="mr-2 h-4 w-4" />
+            View Analytics
+          </Link>
+        </Button>
       </div>
 
       <div className="space-y-6">
-        <PortfolioSummary />
+        <PortfolioSummary portfolioData={portfolioStatus} />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="col-span-1">
@@ -86,8 +131,49 @@ const Portfolio: React.FC = () => {
               <CardTitle>Performance Over Time</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                Performance chart would be displayed here (with historical data from API)
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={performanceData}
+                    margin={{
+                      top: 5,
+                      right: 30,
+                      left: 20,
+                      bottom: 5,
+                    }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="date" 
+                      tickFormatter={(tick) => {
+                        const date = new Date(tick);
+                        return `${date.toLocaleDateString('en-US', { month: 'short' })}`;
+                      }}
+                      ticks={performanceData
+                        .filter((_, i) => i % 4 === 0)
+                        .map(item => item.date)}
+                    />
+                    <YAxis />
+                    <Tooltip
+                      formatter={(value) => [`₹${value.toLocaleString()}`, 'Value']}
+                      labelFormatter={(label) => {
+                        const date = new Date(label);
+                        return date.toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        });
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      stroke="#3773f4"
+                      dot={false}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
             </CardContent>
           </Card>

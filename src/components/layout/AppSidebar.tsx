@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -7,13 +8,15 @@ import {
   Star, 
   ClipboardList, 
   User, 
-  BellRing
+  BellRing,
+  FileBarChart
 } from 'lucide-react';
 
 const navItems = [
   { path: '/', icon: Home, label: 'Dashboard' },
   { path: '/trading', icon: BarChart3, label: 'Trading' },
   { path: '/portfolio', icon: Briefcase, label: 'Portfolio' },
+  { path: '/analytics', icon: FileBarChart, label: 'Analytics' },
   { path: '/watchlist', icon: Star, label: 'Watchlist' },
   { path: '/orders', icon: ClipboardList, label: 'Orders' },
   { path: '/recommendations', icon: BellRing, label: 'Recommendations' },
