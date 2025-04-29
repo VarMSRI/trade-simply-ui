@@ -18,9 +18,13 @@ const WebSocketManager: React.FC<WebSocketManagerProps> = ({ instrumentTokens })
     updateMarketData(data.instrument_token, data);
   };
   
+  // Extract token and user ID
+  const authToken = user?.token || localStorage.getItem('token');
+  const userId = user?.id || '';
+  
   // Only connect if we have tokens and user data
   const shouldConnect = instrumentTokens.length > 0 && 
-    user && user.id && user.token;
+    userId && authToken;
   
   useEffect(() => {
     if (shouldConnect && !isConnected) {
@@ -31,8 +35,8 @@ const WebSocketManager: React.FC<WebSocketManagerProps> = ({ instrumentTokens })
   
   // Only use the hook if we should connect
   const disconnect = shouldConnect ? useStompClient({
-    jwt: user?.token || '',
-    userId: user?.id || '',
+    jwt: authToken || '',
+    userId: userId || '',
     instrumentTokens,
     onMarketUpdate: handleMarketUpdate,
   }) : undefined;
