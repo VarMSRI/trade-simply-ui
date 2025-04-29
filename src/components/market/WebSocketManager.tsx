@@ -19,7 +19,7 @@ const WebSocketManager: React.FC<WebSocketManagerProps> = ({ instrumentTokens })
   };
   
   // Extract token and user ID
-  const authToken = user?.token || localStorage.getItem('token');
+  const authToken = localStorage.getItem('token');
   const userId = user?.id || '';
   
   // Only connect if we have tokens and user data

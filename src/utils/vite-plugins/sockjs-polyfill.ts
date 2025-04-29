@@ -1,36 +1,31 @@
 
-// SockJS polyfill plugin for Vite
-// This plugin fixes the "global is not defined" issue with sockjs-client in browser environments
+import type { Plugin } from 'vite';
 
-export function sockJsPolyfill() {
+export function sockJsPolyfill(): Plugin {
   return {
-    name: 'vite:sockjs-polyfill',
-    transform(code: string, id: string) {
-      // Only apply this transform to sockjs-client files
+    name: 'sockjs-polyfill',
+    
+    // Transform the code to handle the global reference in sockjs-client
+    transform(code, id) {
       if (id.includes('sockjs-client')) {
-        // Replace references to the global object with window
-        const modified = code
-          .replace(/typeof global/g, 'typeof window')
-          .replace(/\bglobal\b(?!\s*=)/g, 'window');
-          
-        return {
-          code: modified,
-          map: null
+        // Replace any references to global with window
+        const newCode = code.replace(/\bglobal\b/g, 'window');
+        return { 
+          code: newCode, 
+          map: null 
         };
       }
       return null;
     },
-    // Inject global polyfill at the start of the application
+    
+    // Inject a global polyfill into the HTML
     transformIndexHtml() {
       return [
         {
           tag: 'script',
-          attrs: { type: 'module' },
-          children: `
-            // SockJS global polyfill
-            window.global = window;
-          `,
-          injectTo: 'head-prepend'
+          attrs: { type: 'text/javascript' },
+          children: 'window.global = window;',
+          injectTo: 'head'
         }
       ];
     }
