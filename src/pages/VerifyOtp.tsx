@@ -88,12 +88,12 @@ const VerifyOtp = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleVerify}>
+          <form onSubmit={handleVerify} id="verify-otp-form">
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="otp">One-Time Password</Label>
+                <Label htmlFor="otp-input">One-Time Password</Label>
                 <div className="flex justify-center">
-                  <InputOTP maxLength={6} value={otp} onChange={setOtp}>
+                  <InputOTP maxLength={6} value={otp} onChange={setOtp} id="otp-input" name="otp">
                     <InputOTPGroup>
                       <InputOTPSlot index={0} />
                       <InputOTPSlot index={1} />
@@ -110,6 +110,7 @@ const VerifyOtp = () => {
                 type="submit" 
                 className="w-full" 
                 disabled={isSubmitting}
+                id="verify-otp-button"
               >
                 {isSubmitting ? 'Verifying...' : 'Verify OTP'}
               </Button>
@@ -120,6 +121,7 @@ const VerifyOtp = () => {
                   variant="ghost" 
                   disabled={resendDisabled}
                   onClick={handleResendOtp}
+                  id="resend-otp-button"
                 >
                   {resendDisabled 
                     ? `Resend OTP in ${countdown}s` 
@@ -133,6 +135,7 @@ const VerifyOtp = () => {
           <Button 
             variant="outline" 
             onClick={() => navigate('/login')}
+            id="change-phone-button"
           >
             Change Phone Number
           </Button>

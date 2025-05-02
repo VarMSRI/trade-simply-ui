@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
@@ -55,12 +56,13 @@ const Login = () => {
           <CardDescription>Login with your WhatsApp number</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} id="login-form">
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="phoneNumber">WhatsApp Number</Label>
                 <Input
                   id="phoneNumber"
+                  name="phoneNumber"
                   placeholder="Enter your 10-digit number"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
@@ -81,6 +83,7 @@ const Login = () => {
                 type="submit" 
                 className="w-full py-6" 
                 disabled={isSubmitting}
+                id="send-otp-button"
               >
                 {isSubmitting ? 'Sending OTP...' : 'Get OTP'}
               </Button>

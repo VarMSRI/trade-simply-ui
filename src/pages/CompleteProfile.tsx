@@ -55,11 +55,12 @@ const CompleteProfile = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" id="profile-form">
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
               <Input 
                 id="name" 
+                name="name"
                 placeholder="Enter your full name" 
                 value={name} 
                 onChange={(e) => setName(e.target.value)} 
@@ -71,6 +72,7 @@ const CompleteProfile = () => {
               <Label htmlFor="email">Email Address</Label>
               <Input 
                 id="email" 
+                name="email"
                 type="email" 
                 placeholder="Enter your email address" 
                 value={email} 
@@ -84,6 +86,7 @@ const CompleteProfile = () => {
                 type="submit" 
                 className="flex-1" 
                 disabled={isSubmitting}
+                id="complete-profile-submit"
               >
                 {isSubmitting ? 'Saving...' : 'Complete Profile'}
               </Button>
@@ -92,6 +95,7 @@ const CompleteProfile = () => {
                 type="button" 
                 variant="outline" 
                 onClick={logout}
+                id="cancel-profile"
               >
                 Cancel
               </Button>

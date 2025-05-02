@@ -40,8 +40,10 @@ const OrderFormInputs: React.FC<OrderFormInputsProps> = ({
   return (
     <>
       <div className="space-y-2">
-        <label className="text-sm font-medium">Quantity</label>
+        <label className="text-sm font-medium" htmlFor="quantity">Quantity</label>
         <Input 
+          id="quantity"
+          name="quantity"
           type="number" 
           min="1"
           step="1"
@@ -53,13 +55,14 @@ const OrderFormInputs: React.FC<OrderFormInputsProps> = ({
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-medium">Order Type</label>
+        <label className="text-sm font-medium" htmlFor="orderType">Order Type</label>
         <Select 
           value={orderType} 
           onValueChange={(value) => setOrderType(value as OrderType)}
           disabled={isCreatingOrder}
+          name="orderType"
         >
-          <SelectTrigger>
+          <SelectTrigger id="orderType">
             <SelectValue placeholder="Select order type" />
           </SelectTrigger>
           <SelectContent>
@@ -72,8 +75,10 @@ const OrderFormInputs: React.FC<OrderFormInputsProps> = ({
 
       {orderType !== 'MARKET' && (
         <div className="space-y-2">
-          <label className="text-sm font-medium">Price</label>
+          <label className="text-sm font-medium" htmlFor="price">Price</label>
           <Input
+            id="price"
+            name="price"
             type="number" 
             min="0.01" 
             step="0.01" 
@@ -86,8 +91,10 @@ const OrderFormInputs: React.FC<OrderFormInputsProps> = ({
       )}
 
       <div className="space-y-2">
-        <label className="text-sm font-medium">Stop Loss (Optional)</label>
+        <label className="text-sm font-medium" htmlFor="stopLoss">Stop Loss (Optional)</label>
         <Input
+          id="stopLoss"
+          name="stopLoss"
           type="number" 
           min="0.01" 
           step="0.01" 
@@ -99,8 +106,10 @@ const OrderFormInputs: React.FC<OrderFormInputsProps> = ({
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-medium">Target Price (Optional)</label>
+        <label className="text-sm font-medium" htmlFor="target">Target Price (Optional)</label>
         <Input
+          id="target"
+          name="target"
           type="number" 
           min="0.01" 
           step="0.01" 
